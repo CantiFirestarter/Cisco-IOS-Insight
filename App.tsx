@@ -27,19 +27,18 @@ const App: React.FC = () => {
   useEffect(() => {
     const checkKey = async () => {
       try {
-        // Robust check for specialized window object
         // @ts-ignore
         if (window.aistudio && typeof window.aistudio.hasSelectedApiKey === 'function') {
+          // If we are in AI Studio, force the user to have explicitly selected a key
+          // This ensures they are using their own billing project/account.
           // @ts-ignore
           const exists = await window.aistudio.hasSelectedApiKey();
           setHasApiKey(exists);
         } else {
-          // Fallback: If not in the specialized container, check for environment variable
-          // If neither exists, show the AuthGate so user can trigger openSelectKey()
+          // Standalone fallback: only proceed if the developer has provided an API_KEY in deployment
           setHasApiKey(!!process.env.API_KEY);
         }
       } catch (err) {
-        console.warn("API Key check failed, defaulting to AuthGate visibility", err);
         setHasApiKey(false);
       }
     };
@@ -52,10 +51,9 @@ const App: React.FC = () => {
       if (window.aistudio && typeof window.aistudio.openSelectKey === 'function') {
         // @ts-ignore
         await window.aistudio.openSelectKey();
-      } else {
-        console.error("Authentication trigger not available in this environment.");
+        // Assume success after triggering the dialog to avoid race conditions
+        setHasApiKey(true);
       }
-      setHasApiKey(true);
     } catch (err) {
       console.error("Failed to open key selection dialog", err);
     }
@@ -80,7 +78,7 @@ const App: React.FC = () => {
         setState(prev => ({ 
           ...prev, 
           isAnalyzing: false, 
-          error: "The selected project does not have the Gemini API enabled or is invalid. Please select a valid paid project key." 
+          error: "API credentials invalid or project not found. Please select a valid billing-enabled project." 
         }));
       } else {
         setState(prev => ({ ...prev, isAnalyzing: false, error: err.message }));
@@ -101,7 +99,6 @@ const App: React.FC = () => {
     return <AuthGate onSelectKey={handleSelectKey} />;
   }
 
-  // Still checking key status
   if (hasApiKey === null) return null;
 
   return (

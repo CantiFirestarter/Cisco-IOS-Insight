@@ -75,7 +75,7 @@ const ANALYSIS_SCHEMA = {
 
 export async function analyzeCiscoConfigs(files: ConfigFile[]): Promise<AnalysisResult> {
   try {
-    // Initialize AI client right before use to catch the injected API Key
+    // Initialize AI client right before use to ensure the most up-to-date API key from the dialog
     const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
     
     const isSingle = files.length === 1;
@@ -94,7 +94,7 @@ export async function analyzeCiscoConfigs(files: ConfigFile[]): Promise<Analysis
          4. ARCHITECTURAL VIOLATIONS: Misconfigurations in IOS/XE/XR relative to Cisco Validated Designs (CVD).`;
 
     const response = await ai.models.generateContent({
-      model: "gemini-3-flash-preview",
+      model: "gemini-3-pro-preview",
       contents: `${prompt}
 
       Configurations:
@@ -103,12 +103,12 @@ export async function analyzeCiscoConfigs(files: ConfigFile[]): Promise<Analysis
         systemInstruction: `You are a CCIE-level Network Architect. Your knowledge base is strictly Cisco-centric (CVDs, Configuration Guides, and Security Best Practices). 
         - For SINGLE configs: Provide detailed device-level inspection.
         - For BULK configs: Focus heavily on inter-device consistency and network-wide architectural integrity.
-        - CLI COMMAND RULES: Every Cisco command must be on its own line. Use standard CLI hierarchy (e.g., enter sub-mode, then apply command, then 'exit' if necessary). NEVER use semicolons (;) to combine commands into one line.
-        - FORMATTING: You may use basic Markdown (**bold**, *italic*) for emphasis in description and summary fields.
+        - CLI COMMAND RULES: Every Cisco command must be on its own line. Use standard CLI hierarchy. NEVER use semicolons (;) to combine commands.
+        - FORMATTING: You may use basic Markdown for emphasis.
         Output strictly valid JSON matching the schema.`,
         responseMimeType: "application/json",
         responseSchema: ANALYSIS_SCHEMA,
-        thinkingConfig: { thinkingBudget: 0 }
+        thinkingConfig: { thinkingBudget: 32768 } // Max budget for gemini-3-pro-preview
       },
     });
 
@@ -120,7 +120,7 @@ export async function analyzeCiscoConfigs(files: ConfigFile[]): Promise<Analysis
     console.error("Gemini Cisco Audit Error:", error);
     
     // Propagate "Requested entity was not found" to trigger key re-selection in App.tsx
-    if (error.message?.includes("Requested entity was not found")) {
+    if (error.message?.includes("Requested entity was not found") || error.status === 404) {
       throw new Error("API_KEY_NOT_FOUND");
     }
     
