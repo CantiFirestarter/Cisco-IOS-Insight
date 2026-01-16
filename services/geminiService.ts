@@ -2,8 +2,6 @@
 import { GoogleGenAI, Type } from "@google/genai";
 import { AnalysisResult, Severity, ConfigFile } from "../types";
 
-const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
-
 const ANALYSIS_SCHEMA = {
   type: Type.OBJECT,
   properties: {
@@ -77,6 +75,9 @@ const ANALYSIS_SCHEMA = {
 
 export async function analyzeCiscoConfigs(files: ConfigFile[]): Promise<AnalysisResult> {
   try {
+    // Initialize AI client right before use to catch the injected API Key
+    const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
+    
     const isSingle = files.length === 1;
     const combinedConfigs = files.map(f => `FILE: ${f.name}\n---\n${f.content}\n---`).join('\n\n');
 
@@ -117,6 +118,12 @@ export async function analyzeCiscoConfigs(files: ConfigFile[]): Promise<Analysis
     return JSON.parse(resultText) as AnalysisResult;
   } catch (error: any) {
     console.error("Gemini Cisco Audit Error:", error);
+    
+    // Propagate "Requested entity was not found" to trigger key re-selection in App.tsx
+    if (error.message?.includes("Requested entity was not found")) {
+      throw new Error("API_KEY_NOT_FOUND");
+    }
+    
     throw new Error(error.message || "Failed to analyze Cisco configurations.");
   }
 }
