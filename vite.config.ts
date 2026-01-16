@@ -5,11 +5,14 @@ import react from '@vitejs/plugin-react';
 export default defineConfig({
   plugins: [react()],
   define: {
-    'process.env': process.env
+    // Specifically define process.env to avoid serializing the entire environment
+    'process.env': {
+      API_KEY: process.env.API_KEY
+    }
   },
   build: {
     outDir: 'dist',
-    sourcemap: true
+    sourcemap: false // Reduced for faster production builds
   },
   server: {
     port: 3000
