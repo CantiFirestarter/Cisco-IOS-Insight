@@ -34,9 +34,11 @@ const App: React.FC = () => {
           // @ts-ignore
           const exists = await window.aistudio.hasSelectedApiKey();
           setHasApiKey(exists);
+        } else if (process.env.API_KEY) {
+          // Standalone fallback for other deployment types
+          setHasApiKey(true);
         } else {
-          // Standalone fallback: only proceed if the developer has provided an API_KEY in deployment
-          setHasApiKey(!!process.env.API_KEY);
+          setHasApiKey(false);
         }
       } catch (err) {
         setHasApiKey(false);
@@ -51,7 +53,7 @@ const App: React.FC = () => {
       if (window.aistudio && typeof window.aistudio.openSelectKey === 'function') {
         // @ts-ignore
         await window.aistudio.openSelectKey();
-        // Assume success after triggering the dialog to avoid race conditions
+        // Rule: Assume success after triggering the dialog to avoid race conditions
         setHasApiKey(true);
       }
     } catch (err) {
@@ -78,7 +80,7 @@ const App: React.FC = () => {
         setState(prev => ({ 
           ...prev, 
           isAnalyzing: false, 
-          error: "API credentials invalid or project not found. Please select a valid billing-enabled project." 
+          error: "API credentials invalid. Please select a valid project with billing enabled." 
         }));
       } else {
         setState(prev => ({ ...prev, isAnalyzing: false, error: err.message }));
