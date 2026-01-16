@@ -26,17 +26,39 @@ const App: React.FC = () => {
 
   useEffect(() => {
     const checkKey = async () => {
-      // @ts-ignore
-      const exists = await window.aistudio.hasSelectedApiKey();
-      setHasApiKey(exists);
+      try {
+        // Robust check for specialized window object
+        // @ts-ignore
+        if (window.aistudio && typeof window.aistudio.hasSelectedApiKey === 'function') {
+          // @ts-ignore
+          const exists = await window.aistudio.hasSelectedApiKey();
+          setHasApiKey(exists);
+        } else {
+          // Fallback: If not in the specialized container, check for environment variable
+          // If neither exists, show the AuthGate so user can trigger openSelectKey()
+          setHasApiKey(!!process.env.API_KEY);
+        }
+      } catch (err) {
+        console.warn("API Key check failed, defaulting to AuthGate visibility", err);
+        setHasApiKey(false);
+      }
     };
     checkKey();
   }, []);
 
   const handleSelectKey = async () => {
-    // @ts-ignore
-    await window.aistudio.openSelectKey();
-    setHasApiKey(true);
+    try {
+      // @ts-ignore
+      if (window.aistudio && typeof window.aistudio.openSelectKey === 'function') {
+        // @ts-ignore
+        await window.aistudio.openSelectKey();
+      } else {
+        console.error("Authentication trigger not available in this environment.");
+      }
+      setHasApiKey(true);
+    } catch (err) {
+      console.error("Failed to open key selection dialog", err);
+    }
   };
 
   const handleAnalyze = async (stagedFiles: ConfigFile[]) => {
@@ -55,7 +77,11 @@ const App: React.FC = () => {
     } catch (err: any) {
       if (err.message === 'API_KEY_NOT_FOUND') {
         setHasApiKey(false);
-        setState(prev => ({ ...prev, isAnalyzing: false, error: "The selected project does not have the Gemini API enabled or is invalid. Please select a valid paid project key." }));
+        setState(prev => ({ 
+          ...prev, 
+          isAnalyzing: false, 
+          error: "The selected project does not have the Gemini API enabled or is invalid. Please select a valid paid project key." 
+        }));
       } else {
         setState(prev => ({ ...prev, isAnalyzing: false, error: err.message }));
       }
@@ -75,6 +101,7 @@ const App: React.FC = () => {
     return <AuthGate onSelectKey={handleSelectKey} />;
   }
 
+  // Still checking key status
   if (hasApiKey === null) return null;
 
   return (
