@@ -16,9 +16,12 @@ const Header: React.FC<HeaderProps> = ({ onReset, onSelectKey, hasResult }) => {
           <div className="bg-blue-600 p-1.5 sm:p-2 rounded-lg group-hover:bg-blue-500 transition-colors shadow-lg shadow-blue-500/20">
             <ShieldCheck className="w-5 h-5 sm:w-6 sm:h-6 text-white" />
           </div>
-          <h1 className="text-lg sm:text-xl font-bold tracking-tight bg-gradient-to-r from-white to-slate-400 bg-clip-text text-transparent">
-            Cisco IOS Insight
-          </h1>
+          <div className="flex flex-col">
+            <h1 className="text-lg sm:text-xl font-bold tracking-tight bg-gradient-to-r from-white to-slate-400 bg-clip-text text-transparent leading-none">
+              Cisco IOS Insight
+            </h1>
+            <span className="text-[8px] font-black tracking-[0.1em] text-slate-600 mt-0.5">By Canti Firestarter</span>
+          </div>
         </div>
         
         <div className="flex items-center gap-4">

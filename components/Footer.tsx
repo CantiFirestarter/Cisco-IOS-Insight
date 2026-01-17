@@ -13,9 +13,14 @@ const Footer: React.FC = () => {
         <p className="text-[9px] sm:text-xs text-slate-500/60 max-w-2xl mx-auto italic px-4">
           Cisco IOS Insight provides suggestions based on Cisco technical documentation. Operator assumes all responsibility for network changes.
         </p>
-        <p className="text-[8px] sm:text-[10px] text-slate-600 font-medium">
-          &copy; {new Date().getFullYear()} Firestarter Forge.
-        </p>
+        <div className="space-y-1">
+          <p className="text-[8px] sm:text-[10px] text-slate-600 font-medium tracking-widest">
+            &copy; 2026 Firestarter Forge.
+          </p>
+          <p className="text-[8px] sm:text-[9px] text-slate-700">
+            Developed by <a href="https://firestarterforge.dev" target="_blank" rel="noopener noreferrer" className="text-blue-500/50 hover:text-blue-400 transition-colors">Canti Firestarter</a>
+          </p>
+        </div>
       </div>
     </footer>
   );

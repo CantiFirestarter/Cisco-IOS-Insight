@@ -1,4 +1,13 @@
 
+/**
+ * Cisco IOS Insight: Config Analyzer
+ * 
+ * @author Canti Firestarter <canti@firestartforge.dev>
+ * @copyright 2026 Firestarter Forge
+ * @license MIT
+ * @link https://firestarterforge.dev
+ */
+
 import React from 'react';
 import ReactDOM from 'react-dom/client';
 import App from './App';
