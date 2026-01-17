@@ -1,7 +1,7 @@
 
 import React, { useState, useMemo } from 'react';
 import { AnalysisResult, Severity, AnalysisIssue, SuccessfulCheck, BestPractice } from '../types';
-import { ShieldAlert, AlertTriangle, Info, CheckCircle2, Copy, ChevronDown, ChevronUp, Network, Server, ShieldCheck, Terminal, Layers, Filter, X } from 'lucide-react';
+import { ShieldAlert, AlertTriangle, Info, CheckCircle2, Copy, ChevronDown, ChevronUp, Network, Server, ShieldCheck, Terminal, Layers, Filter, X, Check, Lightbulb } from 'lucide-react';
 import ReactMarkdown from 'react-markdown';
 
 interface Props {
@@ -202,24 +202,7 @@ const AnalysisResults: React.FC<Props> = ({ result }) => {
                   </div>
                   <div className="grid grid-cols-1 gap-3">
                     {groupedBestPractices[category].map((bp, idx) => (
-                      <div key={idx} className="bg-slate-900/50 border border-slate-800 p-5 sm:p-8 rounded-xl sm:rounded-3xl flex items-start sm:items-center space-x-4 sm:space-x-6 hover:border-blue-500/20 transition-all hover:bg-slate-900/80">
-                        <div className="bg-blue-500/10 p-3 sm:p-4 rounded-xl h-fit border border-blue-500/10 shrink-0">
-                          <Info className="w-5 h-5 sm:w-6 sm:h-6 text-blue-500" />
-                        </div>
-                        <div className="space-y-1 sm:space-y-2 flex-1 min-w-0">
-                          <div className="flex items-center gap-2">
-                             <span className="text-[8px] sm:text-[10px] text-blue-500/80 font-black uppercase tracking-widest">Guidance</span>
-                          </div>
-                          <h4 className="text-white font-bold text-base sm:text-lg">{bp.title}</h4>
-                          <div className="text-slate-400 text-xs sm:text-sm leading-relaxed prose prose-invert prose-sm max-w-none">
-                            <ReactMarkdown components={{
-                              strong: ({children}) => <strong className="font-bold text-blue-400">{children}</strong>
-                            }}>
-                              {bp.recommendation}
-                            </ReactMarkdown>
-                          </div>
-                        </div>
-                      </div>
+                      <BestPracticeCard key={`${category}-${idx}`} bp={bp} />
                     ))}
                   </div>
                 </div>
@@ -241,8 +224,88 @@ const EmptyState: React.FC<{ message: string }> = ({ message }) => (
   </div>
 );
 
+const BestPracticeCard: React.FC<{ bp: BestPractice }> = ({ bp }) => {
+  const [isOpen, setIsOpen] = useState(false);
+
+  return (
+    <div className={`bg-slate-900 border border-slate-800 rounded-xl sm:rounded-2xl border-l-4 border-l-blue-500 overflow-hidden transition-all duration-300 shadow-lg ${isOpen ? 'ring-1 ring-blue-900/30 shadow-blue-500/5' : ''}`}>
+      <div 
+        className="p-4 sm:p-6 flex items-start justify-between cursor-pointer hover:bg-slate-800/50 transition-colors"
+        onClick={() => setIsOpen(!isOpen)}
+      >
+        <div className="flex space-x-3 sm:space-x-6 items-start overflow-hidden flex-1">
+          <div className="bg-blue-500/10 p-2 sm:p-4 rounded-lg sm:rounded-xl border border-blue-500/20 shrink-0">
+            <Info className="w-5 h-5 sm:w-6 sm:h-6 text-blue-500" />
+          </div>
+          <div className="space-y-1 sm:space-y-2 overflow-hidden flex-1 min-w-0">
+            <div className="flex items-center gap-2">
+               <span className="text-[7px] sm:text-[9px] font-black px-1.5 py-0.5 rounded sm:rounded-lg uppercase tracking-widest bg-blue-500/10 text-blue-400 border border-blue-500/20">
+                 Advisory
+               </span>
+               <span className="text-[8px] sm:text-[10px] text-slate-500 font-black uppercase tracking-widest">
+                 {bp.category}
+               </span>
+            </div>
+            <h4 className="text-white font-bold text-sm sm:text-xl tracking-tight truncate">{bp.title}</h4>
+            {!isOpen && <p className="text-slate-400 text-[10px] sm:text-sm line-clamp-1 italic">Explore the rationale and recommendation...</p>}
+          </div>
+        </div>
+        <div className="text-slate-600 self-center ml-2 shrink-0">
+          {isOpen ? <ChevronUp className="w-4 h-4 sm:w-6 sm:h-6" /> : <ChevronDown className="w-4 h-4 sm:w-6 sm:h-6" />}
+        </div>
+      </div>
+
+      {isOpen && (
+        <div className="px-4 sm:px-6 pb-6 sm:pb-8 pt-1 sm:pt-2 space-y-4 sm:space-y-6 animate-in fade-in slide-in-from-top-4">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4 sm:gap-6">
+            <div className="space-y-2">
+              <div className="flex items-center gap-2">
+                <Lightbulb className="w-3.5 h-3.5 text-blue-400" />
+                <h5 className="text-[8px] sm:text-[10px] font-black text-slate-500 uppercase tracking-widest">Context & Rationale</h5>
+              </div>
+              <div className="text-slate-300 text-xs sm:text-sm leading-relaxed prose prose-invert max-w-none bg-slate-950/40 p-3 sm:p-4 rounded-xl border border-slate-800/50 italic">
+                <ReactMarkdown components={{
+                  strong: ({children}) => <strong className="font-bold text-blue-400">{children}</strong>
+                }}>
+                  {bp.rationale}
+                </ReactMarkdown>
+              </div>
+            </div>
+
+            <div className="space-y-2">
+              <div className="flex items-center gap-2">
+                <CheckCircle2 className="w-3.5 h-3.5 text-blue-400" />
+                <h5 className="text-[8px] sm:text-[10px] font-black text-slate-500 uppercase tracking-widest">Implementation Guidance</h5>
+              </div>
+              <div className="text-slate-300 text-xs sm:text-sm leading-relaxed prose prose-invert max-w-none p-1">
+                <ReactMarkdown components={{
+                  strong: ({children}) => <strong className="font-bold text-white">{children}</strong>
+                }}>
+                  {bp.recommendation}
+                </ReactMarkdown>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+};
+
 const SuccessCard: React.FC<{ check: SuccessfulCheck }> = ({ check }) => {
   const [isOpen, setIsOpen] = useState(false);
+  const [copied, setCopied] = useState(false);
+
+  const handleCopy = async (e: React.MouseEvent) => {
+    e.stopPropagation();
+    try {
+      await navigator.clipboard.writeText(check.validatedConfig);
+      setCopied(true);
+      setTimeout(() => setCopied(false), 2000);
+    } catch (err) {
+      console.error('Failed to copy validated CLI:', err);
+    }
+  };
 
   return (
     <div className={`bg-slate-900 border border-slate-800 rounded-xl sm:rounded-2xl border-l-4 border-l-emerald-500 overflow-hidden transition-all duration-300 shadow-lg ${isOpen ? 'ring-1 ring-emerald-900/30' : ''}`}>
@@ -250,7 +313,7 @@ const SuccessCard: React.FC<{ check: SuccessfulCheck }> = ({ check }) => {
         className="p-4 sm:p-6 flex items-start justify-between cursor-pointer hover:bg-slate-800/50 transition-colors"
         onClick={() => setIsOpen(!isOpen)}
       >
-        <div className="flex space-x-3 sm:space-x-6 items-start overflow-hidden">
+        <div className="flex space-x-3 sm:space-x-6 items-start overflow-hidden flex-1">
           <div className="p-2 sm:p-4 rounded-lg sm:rounded-xl bg-emerald-500/10 border border-emerald-500/20 shrink-0">
             <ShieldCheck className="text-emerald-500 w-5 h-5 sm:w-6 sm:h-6" />
           </div>
@@ -275,8 +338,8 @@ const SuccessCard: React.FC<{ check: SuccessfulCheck }> = ({ check }) => {
       {isOpen && (
         <div className="px-4 sm:px-6 pb-6 sm:pb-8 pt-1 sm:pt-2 space-y-4 sm:space-y-6 animate-in fade-in slide-in-from-top-4">
           <div className="space-y-1 sm:space-y-2">
-            <h5 className="text-[8px] sm:text-[10px] font-black text-slate-500 uppercase tracking-widest">Logic</h5>
-            <div className="text-slate-300 text-xs sm:text-base leading-relaxed prose prose-invert prose-emerald max-w-none">
+            <h5 className="text-[8px] sm:text-[10px] font-black text-slate-500 uppercase tracking-widest">Validation & Benefit</h5>
+            <div className="text-slate-300 text-xs sm:text-base leading-relaxed prose prose-invert prose-emerald max-w-none bg-slate-950/30 p-4 rounded-xl border border-slate-800">
               <ReactMarkdown components={{
                 strong: ({children}) => <strong className="font-bold text-emerald-400">{children}</strong>
               }}>
@@ -297,8 +360,21 @@ const SuccessCard: React.FC<{ check: SuccessfulCheck }> = ({ check }) => {
             </div>
           </div>
 
-          <div className="space-y-1 sm:space-y-2">
-            <h5 className="text-[8px] sm:text-[10px] font-black text-slate-500 uppercase tracking-widest">Validated CLI</h5>
+          <div className="space-y-2 sm:space-y-3">
+            <div className="flex items-center justify-between">
+              <h5 className="text-[8px] sm:text-[10px] font-black text-slate-500 uppercase tracking-widest">Validated CLI</h5>
+              <button 
+                onClick={handleCopy}
+                className={`flex items-center justify-center space-x-1.5 text-[8px] sm:text-[9px] font-black uppercase tracking-widest px-2.5 py-1.5 rounded-lg border transition-all active:scale-95 ${
+                  copied 
+                  ? 'bg-emerald-500 text-white border-emerald-400 shadow-lg shadow-emerald-500/20' 
+                  : 'bg-emerald-500/5 text-emerald-500 border-emerald-500/10 hover:bg-emerald-500/10'
+                }`}
+              >
+                {copied ? <Check className="w-3 h-3" /> : <Copy className="w-3 h-3" />}
+                <span>{copied ? 'Copied!' : 'Copy snippet'}</span>
+              </button>
+            </div>
             <div className="bg-slate-950 p-3 sm:p-4 rounded-lg sm:rounded-xl border border-slate-800 font-mono text-[10px] sm:text-sm text-emerald-400/90 whitespace-pre overflow-x-auto custom-scrollbar">
               {check.validatedConfig}
             </div>
@@ -311,6 +387,23 @@ const SuccessCard: React.FC<{ check: SuccessfulCheck }> = ({ check }) => {
 
 const IssueCard: React.FC<{ issue: AnalysisIssue; isNetworkWide?: boolean }> = ({ issue, isNetworkWide }) => {
   const [isOpen, setIsOpen] = useState(isNetworkWide || false);
+  const [copiedRemediation, setCopiedRemediation] = useState(false);
+  const [copiedAffected, setCopiedAffected] = useState(false);
+
+  const handleCopy = async (text: string, type: 'remediation' | 'affected') => {
+    try {
+      await navigator.clipboard.writeText(text);
+      if (type === 'remediation') {
+        setCopiedRemediation(true);
+        setTimeout(() => setCopiedRemediation(false), 2000);
+      } else {
+        setCopiedAffected(true);
+        setTimeout(() => setCopiedAffected(false), 2000);
+      }
+    } catch (err) {
+      console.error('Failed to copy CLI commands:', err);
+    }
+  };
 
   const getSeverityStyles = (severity: Severity) => {
     switch (severity) {
@@ -382,8 +475,21 @@ const IssueCard: React.FC<{ issue: AnalysisIssue; isNetworkWide?: boolean }> = (
           )}
 
           {issue.affectedConfig && (
-            <div className="space-y-1 sm:space-y-2">
-              <h5 className="text-[8px] sm:text-[10px] font-black text-slate-500 uppercase tracking-widest">Violating Snippet</h5>
+            <div className="space-y-2 sm:space-y-3">
+              <div className="flex items-center justify-between">
+                <h5 className="text-[8px] sm:text-[10px] font-black text-slate-500 uppercase tracking-widest">Violating Snippet</h5>
+                <button 
+                  onClick={(e) => { e.stopPropagation(); handleCopy(issue.affectedConfig!, 'affected'); }}
+                  className={`flex items-center justify-center space-x-1.5 text-[8px] sm:text-[9px] font-black uppercase tracking-widest px-2.5 py-1.5 rounded-lg border transition-all active:scale-95 ${
+                    copiedAffected 
+                    ? 'bg-blue-600 text-white border-blue-400 shadow-lg shadow-blue-500/20' 
+                    : 'bg-blue-500/5 text-blue-500 border-blue-500/10 hover:bg-blue-500/10'
+                  }`}
+                >
+                  {copiedAffected ? <Check className="w-3 h-3" /> : <Copy className="w-3 h-3" />}
+                  <span>{copiedAffected ? 'Copied!' : 'Copy snippet'}</span>
+                </button>
+              </div>
               <div className="bg-slate-950 p-3 sm:p-4 rounded-lg sm:rounded-xl border border-slate-800 font-mono text-[10px] sm:text-sm text-blue-400/90 whitespace-pre overflow-x-auto custom-scrollbar">
                 {issue.affectedConfig}
               </div>
@@ -400,11 +506,15 @@ const IssueCard: React.FC<{ issue: AnalysisIssue; isNetworkWide?: boolean }> = (
                 </div>
               </div>
               <button 
-                onClick={() => navigator.clipboard.writeText(issue.remediation)}
-                className="flex items-center justify-center space-x-1.5 text-[8px] sm:text-[9px] text-emerald-500 hover:text-emerald-400 font-black uppercase tracking-widest bg-emerald-500/5 px-2.5 py-1.5 rounded-lg border border-emerald-500/10 transition-all active:scale-95"
+                onClick={(e) => { e.stopPropagation(); handleCopy(issue.remediation, 'remediation'); }}
+                className={`flex items-center justify-center space-x-1.5 text-[8px] sm:text-[9px] font-black uppercase tracking-widest px-2.5 py-1.5 rounded-lg border transition-all active:scale-95 ${
+                  copiedRemediation 
+                  ? 'bg-emerald-500 text-white border-emerald-400 shadow-lg shadow-emerald-500/20' 
+                  : 'bg-emerald-500/5 text-emerald-500 border-emerald-500/10 hover:bg-emerald-500/10'
+                }`}
               >
-                <Copy className="w-3 h-3" />
-                <span>Copy commands</span>
+                {copiedRemediation ? <Check className="w-3 h-3" /> : <Copy className="w-3 h-3" />}
+                <span>{copiedRemediation ? 'Copied!' : 'Copy commands'}</span>
               </button>
             </div>
             <div className="group relative">

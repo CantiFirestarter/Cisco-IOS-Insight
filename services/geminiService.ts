@@ -49,7 +49,7 @@ const ANALYSIS_SCHEMA = {
         properties: {
           category: { type: Type.STRING },
           title: { type: Type.STRING },
-          description: { type: Type.STRING, description: "Validation logic. May use Markdown." },
+          description: { type: Type.STRING, description: "Validation logic and the benefit of this configuration. May use Markdown." },
           validatedConfig: { type: Type.STRING, description: "The specific Cisco CLI snippet that is correctly configured. Use EXACTLY one command per line. DO NOT use semicolons." },
           affectedDevices: { type: Type.ARRAY, items: { type: Type.STRING } }
         },
@@ -64,9 +64,10 @@ const ANALYSIS_SCHEMA = {
         properties: {
           category: { type: Type.STRING, description: "e.g., Routing, Management, Security, Performance" },
           title: { type: Type.STRING },
-          recommendation: { type: Type.STRING, description: "Guidance text. May use Markdown." }
+          rationale: { type: Type.STRING, description: "Brief explanation of WHY this best practice exists and what benefit it provides. Use Markdown." },
+          recommendation: { type: Type.STRING, description: "Guidance on how to implement this. May use Markdown." }
         },
-        required: ["category", "title", "recommendation"]
+        required: ["category", "title", "rationale", "recommendation"]
       }
     }
   },

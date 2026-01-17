@@ -26,6 +26,7 @@ export interface SuccessfulCheck {
 export interface BestPractice {
   category: string;
   title: string;
+  rationale: string;
   recommendation: string;
 }
 
@@ -35,7 +36,7 @@ export interface AnalysisResult {
   detectedDevices: string[];
   issues: AnalysisIssue[];
   networkWideIssues: AnalysisIssue[];
-  successfulChecks: SuccessfulCheck[]; // New: track what is configured correctly
+  successfulChecks: SuccessfulCheck[];
   bestPractices: BestPractice[];
   securityScore: number;
 }
