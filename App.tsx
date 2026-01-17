@@ -26,16 +26,21 @@ const App: React.FC = () => {
 
   useEffect(() => {
     const checkKey = async () => {
+      // 1. Check Local Storage first (Persistent Key)
+      const storedKey = localStorage.getItem('cisco_expert_api_key');
+      if (storedKey) {
+        setHasApiKey(true);
+        return;
+      }
+
+      // 2. Check Platform/Environment variable
       try {
         // @ts-ignore
         if (window.aistudio && typeof window.aistudio.hasSelectedApiKey === 'function') {
-          // If we are in AI Studio, force the user to have explicitly selected a key
-          // This ensures they are using their own billing project/account.
           // @ts-ignore
           const exists = await window.aistudio.hasSelectedApiKey();
           setHasApiKey(exists);
         } else if (process.env.API_KEY) {
-          // Standalone fallback for other deployment types
           setHasApiKey(true);
         } else {
           setHasApiKey(false);
@@ -53,7 +58,6 @@ const App: React.FC = () => {
       if (window.aistudio && typeof window.aistudio.openSelectKey === 'function') {
         // @ts-ignore
         await window.aistudio.openSelectKey();
-        // Rule: Assume success after triggering the dialog to avoid race conditions
         setHasApiKey(true);
       }
     } catch (err) {
@@ -80,7 +84,7 @@ const App: React.FC = () => {
         setState(prev => ({ 
           ...prev, 
           isAnalyzing: false, 
-          error: "API credentials invalid. Please select a valid project with billing enabled." 
+          error: "API credentials invalid. Please provide a valid Gemini API key." 
         }));
       } else {
         setState(prev => ({ ...prev, isAnalyzing: false, error: err.message }));
@@ -97,8 +101,12 @@ const App: React.FC = () => {
     });
   };
 
+  const handleKeyManualUpdate = (val: boolean) => {
+    setHasApiKey(val);
+  };
+
   if (hasApiKey === false) {
-    return <AuthGate onSelectKey={handleSelectKey} />;
+    return <AuthGate onSelectKey={handleSelectKey} onKeyValidated={() => setHasApiKey(true)} />;
   }
 
   if (hasApiKey === null) return null;
@@ -107,7 +115,7 @@ const App: React.FC = () => {
     <div className="min-h-screen flex flex-col bg-slate-950 text-slate-200">
       <Header 
         onReset={handleReset} 
-        onSelectKey={handleSelectKey} 
+        onSelectKey={() => setHasApiKey(false)} 
         hasResult={!!state.result} 
       />
 
@@ -140,7 +148,7 @@ const App: React.FC = () => {
           <ErrorDisplay 
             error={state.error} 
             onReset={handleReset} 
-            onSelectKey={handleSelectKey} 
+            onSelectKey={() => setHasApiKey(false)} 
           />
         )}
       </main>

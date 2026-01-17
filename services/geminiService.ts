@@ -73,10 +73,41 @@ const ANALYSIS_SCHEMA = {
   required: ["summary", "deviceCount", "detectedDevices", "issues", "networkWideIssues", "successfulChecks", "bestPractices", "securityScore"]
 };
 
+/**
+ * Returns the effective API key from storage or environment
+ */
+const getEffectiveKey = () => {
+  return localStorage.getItem('cisco_expert_api_key') || process.env.API_KEY || '';
+};
+
+/**
+ * Verifies if an API key is valid by performing a minimal connectivity check
+ */
+export async function validateApiKey(apiKey: string): Promise<{ success: boolean; message: string }> {
+  try {
+    const ai = new GoogleGenAI({ apiKey });
+    // Minimal probe using a lightweight model
+    await ai.models.generateContent({
+      model: "gemini-3-flash-preview",
+      contents: "Hello",
+      config: { maxOutputTokens: 1 }
+    });
+    return { success: true, message: "Connection verified." };
+  } catch (error: any) {
+    console.error("Key validation error:", error);
+    return { 
+      success: false, 
+      message: error.message || "Could not verify connection. Check your key and network." 
+    };
+  }
+}
+
 export async function analyzeCiscoConfigs(files: ConfigFile[]): Promise<AnalysisResult> {
   try {
-    // Initialize AI client right before use to ensure the most up-to-date API key from the dialog
-    const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
+    const apiKey = getEffectiveKey();
+    if (!apiKey) throw new Error("API_KEY_NOT_FOUND");
+
+    const ai = new GoogleGenAI({ apiKey });
     
     const isSingle = files.length === 1;
     const combinedConfigs = files.map(f => `FILE: ${f.name}\n---\n${f.content}\n---`).join('\n\n');
@@ -108,7 +139,7 @@ export async function analyzeCiscoConfigs(files: ConfigFile[]): Promise<Analysis
         Output strictly valid JSON matching the schema.`,
         responseMimeType: "application/json",
         responseSchema: ANALYSIS_SCHEMA,
-        thinkingConfig: { thinkingBudget: 32768 } // Max budget for gemini-3-pro-preview
+        thinkingConfig: { thinkingBudget: 32768 }
       },
     });
 
@@ -118,12 +149,9 @@ export async function analyzeCiscoConfigs(files: ConfigFile[]): Promise<Analysis
     return JSON.parse(resultText) as AnalysisResult;
   } catch (error: any) {
     console.error("Gemini Cisco Audit Error:", error);
-    
-    // Propagate "Requested entity was not found" to trigger key re-selection in App.tsx
-    if (error.message?.includes("Requested entity was not found") || error.status === 404) {
+    if (error.message?.includes("Requested entity was not found") || error.status === 404 || error.message === "API_KEY_NOT_FOUND") {
       throw new Error("API_KEY_NOT_FOUND");
     }
-    
     throw new Error(error.message || "Failed to analyze Cisco configurations.");
   }
 }
