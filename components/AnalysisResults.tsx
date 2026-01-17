@@ -1,7 +1,7 @@
 
 import React, { useState, useMemo } from 'react';
 import { AnalysisResult, Severity, AnalysisIssue, SuccessfulCheck, BestPractice } from '../types';
-import { ShieldAlert, AlertTriangle, Info, CheckCircle2, Copy, ChevronDown, ChevronUp, Network, Server, ShieldCheck, Terminal, Layers, Filter, X, Check, Lightbulb } from 'lucide-react';
+import { ShieldAlert, AlertTriangle, Info, CheckCircle2, Copy, ChevronDown, ChevronUp, Network, Server, ShieldCheck, Terminal, Layers, Filter, X, Check, Lightbulb, Eye, EyeOff } from 'lucide-react';
 import ReactMarkdown from 'react-markdown';
 
 interface Props {
@@ -389,6 +389,9 @@ const IssueCard: React.FC<{ issue: AnalysisIssue; isNetworkWide?: boolean }> = (
   const [isOpen, setIsOpen] = useState(isNetworkWide || false);
   const [copiedRemediation, setCopiedRemediation] = useState(false);
   const [copiedAffected, setCopiedAffected] = useState(false);
+  const [isFullAffectedExpanded, setIsFullAffectedExpanded] = useState(false);
+
+  const TRUNCATION_THRESHOLD = 8; // lines
 
   const handleCopy = async (text: string, type: 'remediation' | 'affected') => {
     try {
@@ -417,6 +420,13 @@ const IssueCard: React.FC<{ issue: AnalysisIssue; isNetworkWide?: boolean }> = (
   };
 
   const styles = getSeverityStyles(issue.severity);
+
+  const affectedLines = issue.affectedConfig ? issue.affectedConfig.split('\n') : [];
+  const lineCount = affectedLines.length;
+  const needsTruncation = lineCount > TRUNCATION_THRESHOLD;
+  const displayedAffectedConfig = (needsTruncation && !isFullAffectedExpanded) 
+    ? affectedLines.slice(0, TRUNCATION_THRESHOLD).join('\n') + '\n...' 
+    : issue.affectedConfig;
 
   return (
     <div className={`bg-slate-900 border border-slate-800 rounded-xl sm:rounded-2xl border-l-4 ${styles.border} overflow-hidden transition-all duration-300 shadow-lg ${isOpen ? 'ring-1 ring-slate-800' : ''}`}>
@@ -477,21 +487,36 @@ const IssueCard: React.FC<{ issue: AnalysisIssue; isNetworkWide?: boolean }> = (
           {issue.affectedConfig && (
             <div className="space-y-2 sm:space-y-3">
               <div className="flex items-center justify-between">
-                <h5 className="text-[8px] sm:text-[10px] font-black text-slate-500 uppercase tracking-widest">Violating Snippet</h5>
-                <button 
-                  onClick={(e) => { e.stopPropagation(); handleCopy(issue.affectedConfig!, 'affected'); }}
-                  className={`flex items-center justify-center space-x-1.5 text-[8px] sm:text-[9px] font-black uppercase tracking-widest px-2.5 py-1.5 rounded-lg border transition-all active:scale-95 ${
-                    copiedAffected 
-                    ? 'bg-blue-600 text-white border-blue-400 shadow-lg shadow-blue-500/20' 
-                    : 'bg-blue-500/5 text-blue-500 border-blue-500/10 hover:bg-blue-500/10'
-                  }`}
-                >
-                  {copiedAffected ? <Check className="w-3 h-3" /> : <Copy className="w-3 h-3" />}
-                  <span>{copiedAffected ? 'Copied!' : 'Copy snippet'}</span>
-                </button>
+                <div className="flex items-center gap-2">
+                  <h5 className="text-[8px] sm:text-[10px] font-black text-slate-500 uppercase tracking-widest">Violating Snippet</h5>
+                  <span className="bg-slate-800/80 px-1.5 py-0.5 rounded text-[7px] sm:text-[8px] font-bold text-slate-400 uppercase tracking-tight">
+                    {lineCount} {lineCount === 1 ? 'line' : 'lines'}
+                  </span>
+                </div>
+                <div className="flex items-center gap-2">
+                  {needsTruncation && (
+                    <button 
+                      onClick={() => setIsFullAffectedExpanded(!isFullAffectedExpanded)}
+                      className="flex items-center gap-1 text-[8px] sm:text-[9px] font-black text-slate-500 hover:text-blue-400 uppercase tracking-widest transition-colors"
+                    >
+                      {isFullAffectedExpanded ? <><EyeOff className="w-3 h-3" /> Show Less</> : <><Eye className="w-3 h-3" /> Show All</>}
+                    </button>
+                  )}
+                  <button 
+                    onClick={(e) => { e.stopPropagation(); handleCopy(issue.affectedConfig!, 'affected'); }}
+                    className={`flex items-center justify-center space-x-1.5 text-[8px] sm:text-[9px] font-black uppercase tracking-widest px-2.5 py-1.5 rounded-lg border transition-all active:scale-95 ${
+                      copiedAffected 
+                      ? 'bg-blue-600 text-white border-blue-400 shadow-lg shadow-blue-500/20' 
+                      : 'bg-blue-500/5 text-blue-500 border-blue-500/10 hover:bg-blue-500/10'
+                    }`}
+                  >
+                    {copiedAffected ? <Check className="w-3 h-3" /> : <Copy className="w-3 h-3" />}
+                    <span>{copiedAffected ? 'Copied!' : 'Copy snippet'}</span>
+                  </button>
+                </div>
               </div>
-              <div className="bg-slate-950 p-3 sm:p-4 rounded-lg sm:rounded-xl border border-slate-800 font-mono text-[10px] sm:text-sm text-blue-400/90 whitespace-pre overflow-x-auto custom-scrollbar">
-                {issue.affectedConfig}
+              <div className={`bg-slate-950 p-3 sm:p-4 rounded-lg sm:rounded-xl border border-slate-800 font-mono text-[10px] sm:text-sm text-blue-400/90 whitespace-pre overflow-x-auto custom-scrollbar transition-all duration-300 ${isFullAffectedExpanded ? 'max-h-[1000px]' : 'max-h-[300px]'}`}>
+                {displayedAffectedConfig}
               </div>
             </div>
           )}
