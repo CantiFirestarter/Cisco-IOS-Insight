@@ -30,18 +30,6 @@ export interface BestPractice {
   recommendation: string;
 }
 
-export interface GroundingSource {
-  title: string;
-  url: string;
-}
-
-export interface RealTimeVulnerability {
-  id: string;
-  title: string;
-  summary: string;
-  url: string;
-}
-
 export interface AnalysisResult {
   summary: string;
   deviceCount: number;
@@ -51,9 +39,6 @@ export interface AnalysisResult {
   successfulChecks: SuccessfulCheck[];
   bestPractices: BestPractice[];
   securityScore: number;
-  topologySummary: string;
-  realTimeVulnerabilities: RealTimeVulnerability[];
-  sources: GroundingSource[];
 }
 
 export interface ConfigFile {

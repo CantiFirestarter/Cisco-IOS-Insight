@@ -3,62 +3,67 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Roadmap - Cisco IOS Insight Documentation</title>
+    <title>Roadmap - Cisco IOS Insight</title>
     <script src="https://cdn.tailwindcss.com"></script>
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Fira+Code:wght@400;500&display=swap" rel="stylesheet">
     <style>
-        body { font-family: 'Inter', sans-serif; background-color: #0f172a; color: #f1f5f9; }
-        .prose h1 { color: #3b82f6; font-weight: 800; border-bottom: 1px solid #1e293b; padding-bottom: 0.5rem; margin-bottom: 1.5rem; }
-        .prose h2 { color: #f1f5f9; font-weight: 700; margin-top: 2rem; margin-bottom: 1rem; }
-        .prose p { margin-bottom: 1rem; color: #94a3b8; line-height: 1.7; }
-        .prose ul { list-style-type: none; padding-left: 0; margin-bottom: 1rem; color: #94a3b8; }
-        .prose li { margin-bottom: 0.75rem; display: flex; align-items: flex-start; gap: 0.75rem; }
-        .prose .checkbox { margin-top: 0.25rem; flex-shrink: 0; }
-        .prose .phase-green { color: #22c55e; }
-        .prose .phase-yellow { color: #eab308; }
-        .prose .phase-orange { color: #f97316; }
-        .prose .phase-red { color: #ef4444; }
-        .prose hr { border: 0; border-top: 1px solid #1e293b; margin: 2rem 0; }
+        body { font-family: 'Inter', sans-serif; background-color: #020617; color: #cbd5e1; }
+        .prose h1 { color: white; font-weight: 800; font-size: 2.25rem; margin-bottom: 1.5rem; }
+        .prose h2 { color: #f8fafc; font-weight: 700; font-size: 1.5rem; margin-top: 2rem; margin-bottom: 1rem; border-bottom: 1px solid #1e293b; padding-bottom: 0.5rem; }
+        .prose h3 { color: #f1f5f9; font-weight: 600; font-size: 1.25rem; margin-top: 1.5rem; margin-bottom: 0.75rem; }
+        .prose p { margin-bottom: 1rem; line-height: 1.625; }
+        .prose ul { list-style-type: disc; padding-left: 1.5rem; margin-bottom: 1rem; }
+        .prose li { margin-bottom: 0.5rem; }
+        .prose strong { color: #60a5fa; }
+        .prose code { font-family: 'Fira Code', monospace; background-color: #1e293b; padding: 0.2rem 0.4rem; border-radius: 0.25rem; font-size: 0.875em; color: #93c5fd; }
+        .prose a { color: #3b82f6; text-decoration: none; border-bottom: 1px solid transparent; transition: border-color 0.2s; }
+        .prose a:hover { border-color: #3b82f6; }
     </style>
 </head>
-<body class="p-8 max-w-4xl mx-auto">
-    <nav class="mb-8 text-sm"><a href="/" class="text-blue-500 hover:underline">← Back to App</a></nav>
+<body class="p-6 md:p-12 max-w-4xl mx-auto">
+    <nav class="mb-12 flex items-center justify-between border-b border-slate-800 pb-6">
+        <a href="/" class="text-xs font-black uppercase tracking-widest text-slate-500 hover:text-white transition-colors flex items-center gap-2">
+            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m15 18-6-6 6-6"/></svg>
+            Back to App
+        </a>
+        <span class="text-[10px] font-bold text-blue-500 uppercase tracking-[0.3em]">Cisco IOS Insight Docs</span>
+    </nav>
     <article class="prose">
-        <h1>🗺️ Strategic Roadmap</h1>
+        <h1>🗺️ Cisco IOS Insight: Strategic Roadmap</h1>
         <p>This document outlines the development trajectory for <strong>Cisco IOS Insight</strong>. Our goal is to evolve from a configuration auditor into a comprehensive AI-driven Network Reliability Engineering (NRE) platform.</p>
 
-        <hr>
-
-        <h2 class="phase-green">🟢 Phase 1: Foundation (Current - v1.0.0)</h2>
+        <h2>🟢 Phase 1: Foundation (Current - v1.0.0)</h2>
         <p><em>Focus: CCIE-Level Static Configuration Auditing</em></p>
         <ul>
-            <li><span class="checkbox">✅</span> <strong>Multi-OS Support:</strong> Native parsing for Cisco IOS, IOS XE, and IOS XR.</li>
-            <li><span class="checkbox">✅</span> <strong>Inter-Device Conflict Detection:</strong> Automated identification of MTU, VLAN, and Routing Protocol mismatches.</li>
-            <li><span class="checkbox">✅</span> <strong>Gemini 3 Integration:</strong> Utilizing high-context windows for large-scale network configuration sets.</li>
-            <li><span class="checkbox">✅</span> <strong>Structured Remediation:</strong> Generation of valid Cisco CLI for security hardening.</li>
+            <li><strong>Multi-OS Support:</strong> Native parsing for Cisco IOS, IOS XE, and IOS XR.</li>
+            <li><strong>Inter-Device Conflict Detection:</strong> Automated identification of MTU, VLAN, and Routing Protocol mismatches between nodes.</li>
+            <li><strong>Gemini 3 Integration:</strong> Utilizing high-context windows for large-scale network configuration sets.</li>
+            <li><strong>Structured Remediation:</strong> Generation of valid Cisco CLI for security hardening and architectural alignment.</li>
+            <li><strong>Client-Side Security:</strong> Local storage persistence for API keys and zero-server-side config storage.</li>
         </ul>
 
-        <h2 class="phase-yellow">🟡 Phase 2: Enhanced Analysis (Next 3-6 Months)</h2>
+        <h2>🟡 Phase 2: Enhanced Analysis (Next 3-6 Months)</h2>
         <p><em>Focus: Reporting, Differencing, and Multi-Vendor Breadth</em></p>
         <ul>
-            <li><span class="checkbox">☐</span> <strong>PDF Executive Reports:</strong> Generate professional audit summaries with charts for management.</li>
-            <li><span class="checkbox">☐</span> <strong>Config Diffing Engine:</strong> Visual "Before vs. After" view for proposed remediation CLI.</li>
-            <li><span class="checkbox">☐</span> <strong>Extended Vendor Support:</strong> Initial support for Arista EOS and Juniper Junos.</li>
+            <li><strong>PDF Executive Reports:</strong> Generate professional audit summaries with charts and impact analysis.</li>
+            <li><strong>Config Diffing Engine:</strong> Visual "Before vs. After" view for proposed remediation CLI.</li>
+            <li><strong>Extended Vendor Support:</strong> Initial support for Arista EOS and Juniper Junos.</li>
+            <li><strong>Offline Mode (Local LLM):</strong> Integration options for local models for high-security environments.</li>
         </ul>
 
-        <h2 class="phase-orange">🟠 Phase 3: Intelligent Operations (6-12 Months)</h2>
+        <h2>🟠 Phase 3: Intelligent Operations (6-12 Months)</h2>
         <p><em>Focus: Dynamic Troubleshooting and Topology</em></p>
         <ul>
-            <li><span class="checkbox">☐</span> <strong>Visual Topology Mapping:</strong> Dynamic generation of network diagrams based on LLM reasoning.</li>
-            <li><span class="checkbox">☐</span> <strong>Live API Integration:</strong> Real-time troubleshooting via the Gemini Live API.</li>
-            <li><span class="checkbox">☐</span> <strong>Compliance Profiles:</strong> Pre-built profiles for PCI-DSS, HIPAA, and NIST.</li>
+            <li><strong>Visual Topology Mapping:</strong> Dynamic generation of network diagrams based on LLM reasoning.</li>
+            <li><strong>Live API Integration:</strong> Real-time troubleshooting via the Gemini Live API.</li>
+            <li><strong>Compliance Profiles:</strong> Pre-built audit profiles for PCI-DSS, HIPAA, NIST standards.</li>
         </ul>
 
-        <h2 class="phase-red">🔴 Phase 4: Autonomous NRE (Long-Term Vision)</h2>
+        <h2>🔴 Phase 4: Autonomous NRE (Long-Term Vision)</h2>
         <p><em>Focus: Predictive Modeling and Closed-Loop Remediation</em></p>
         <ul>
-            <li><span class="checkbox">☐</span> <strong>Predictive Impact Analysis:</strong> Simulate the "blast radius" of a configuration change.</li>
-            <li><span class="checkbox">☐</span> <strong>Closed-Loop Automation:</strong> Integration with Cisco DNA Center for automated remediation.</li>
+            <li><strong>Predictive Impact Analysis:</strong> Simulate the "blast radius" of a configuration change.</li>
+            <li><strong>Closed-Loop Automation:</strong> Integration with Cisco DNA Center / Catalyst Center.</li>
         </ul>
     </article>
 </body>
