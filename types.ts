@@ -45,7 +45,6 @@ export interface ConfigFile {
   name: string;
   content: string;
   id: string;
-  identifiedHostname?: string;
 }
 
 export interface AppState {
@@ -53,12 +52,4 @@ export interface AppState {
   isAnalyzing: boolean;
   result: AnalysisResult | null;
   error: string | null;
-}
-
-export interface WorkerMessage {
-  files: ConfigFile[];
-}
-
-export interface WorkerResponse {
-  processedFiles: ConfigFile[];
 }

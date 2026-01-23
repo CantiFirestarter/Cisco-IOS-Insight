@@ -5,7 +5,7 @@ import { AnalysisResult, Severity, ConfigFile } from "../types";
 const ANALYSIS_SCHEMA = {
   type: Type.OBJECT,
   properties: {
-    summary: { type: Type.STRING, description: "Executive summary of the audit findings. Use Markdown for emphasis." },
+    summary: { type: Type.STRING, description: "Executive summary of the audit findings. Use Markdown for emphasis (e.g., **critical**)." },
     deviceCount: { type: Type.NUMBER },
     detectedDevices: { type: Type.ARRAY, items: { type: Type.STRING }, description: "List of hostnames identified." },
     securityScore: { type: Type.NUMBER, description: "Overall Cisco architectural health score (0-100)." },
@@ -18,7 +18,7 @@ const ANALYSIS_SCHEMA = {
           category: { type: Type.STRING, description: "e.g., Security, Performance, Cisco Best Practice" },
           title: { type: Type.STRING },
           description: { type: Type.STRING, description: "Detailed impact analysis. May use Markdown." },
-          remediation: { type: Type.STRING, description: "Cisco CLI commands to fix the issue. Use EXACTLY one command per line." },
+          remediation: { type: Type.STRING, description: "Cisco CLI commands to fix the issue. Use EXACTLY one command per line. Use standard Cisco configuration hierarchy. DO NOT use semicolons to separate commands." },
           affectedConfig: { type: Type.STRING },
           affectedDevices: { type: Type.ARRAY, items: { type: Type.STRING } }
         },
@@ -34,8 +34,8 @@ const ANALYSIS_SCHEMA = {
           severity: { type: Type.STRING, enum: Object.values(Severity) },
           category: { type: Type.STRING },
           title: { type: Type.STRING },
-          description: { type: Type.STRING },
-          remediation: { type: Type.STRING },
+          description: { type: Type.STRING, description: "Conflict explanation. May use Markdown." },
+          remediation: { type: Type.STRING, description: "Cisco CLI commands to fix the issue. Use EXACTLY one command per line. DO NOT use semicolons." },
           affectedDevices: { type: Type.ARRAY, items: { type: Type.STRING } }
         },
         required: ["severity", "category", "title", "description", "remediation", "affectedDevices"]
@@ -43,13 +43,14 @@ const ANALYSIS_SCHEMA = {
     },
     successfulChecks: {
       type: Type.ARRAY,
+      description: "Cisco configurations that follow Cisco Validated Designs (CVD) or CCIE-level best practices.",
       items: {
         type: Type.OBJECT,
         properties: {
           category: { type: Type.STRING },
           title: { type: Type.STRING },
-          description: { type: Type.STRING },
-          validatedConfig: { type: Type.STRING },
+          description: { type: Type.STRING, description: "Validation logic and the benefit of this configuration. May use Markdown." },
+          validatedConfig: { type: Type.STRING, description: "The specific Cisco CLI snippet that is correctly configured. Use EXACTLY one command per line. DO NOT use semicolons." },
           affectedDevices: { type: Type.ARRAY, items: { type: Type.STRING } }
         },
         required: ["category", "title", "description", "validatedConfig", "affectedDevices"]
@@ -57,13 +58,14 @@ const ANALYSIS_SCHEMA = {
     },
     bestPractices: {
       type: Type.ARRAY,
+      description: "Architectural guidance for the environment.",
       items: {
         type: Type.OBJECT,
         properties: {
-          category: { type: Type.STRING },
+          category: { type: Type.STRING, description: "e.g., Routing, Management, Security, Performance" },
           title: { type: Type.STRING },
-          rationale: { type: Type.STRING },
-          recommendation: { type: Type.STRING }
+          rationale: { type: Type.STRING, description: "Brief explanation of WHY this best practice exists and what benefit it provides. Use Markdown." },
+          recommendation: { type: Type.STRING, description: "Guidance on how to implement this. May use Markdown." }
         },
         required: ["category", "title", "rationale", "recommendation"]
       }
@@ -73,26 +75,19 @@ const ANALYSIS_SCHEMA = {
 };
 
 /**
- * Offloads config cleaning to a Web Worker
+ * Returns the effective API key from storage or environment
  */
-const preProcessConfigs = (files: ConfigFile[]): Promise<ConfigFile[]> => {
-  return new Promise((resolve) => {
-    const worker = new Worker(new URL('../worker.ts', import.meta.url), { type: 'module' });
-    worker.onmessage = (e) => {
-      worker.terminate();
-      resolve(e.data.processedFiles);
-    };
-    worker.postMessage({ files });
-  });
-};
-
 const getEffectiveKey = () => {
   return localStorage.getItem('cisco_expert_api_key') || process.env.API_KEY || '';
 };
 
+/**
+ * Verifies if an API key is valid by performing a minimal connectivity check
+ */
 export async function validateApiKey(apiKey: string): Promise<{ success: boolean; message: string }> {
   try {
     const ai = new GoogleGenAI({ apiKey });
+    // Minimal probe using a lightweight model
     await ai.models.generateContent({
       model: "gemini-3-flash-preview",
       contents: "Hello",
@@ -100,7 +95,11 @@ export async function validateApiKey(apiKey: string): Promise<{ success: boolean
     });
     return { success: true, message: "Connection verified." };
   } catch (error: any) {
-    return { success: false, message: error.message || "Connection failed." };
+    console.error("Key validation error:", error);
+    return { 
+      success: false, 
+      message: error.message || "Could not verify connection. Check your key and network." 
+    };
   }
 }
 
@@ -109,16 +108,22 @@ export async function analyzeCiscoConfigs(files: ConfigFile[]): Promise<Analysis
     const apiKey = getEffectiveKey();
     if (!apiKey) throw new Error("API_KEY_NOT_FOUND");
 
-    // Pre-process using Web Worker (Redaction and Sanitization)
-    const sanitizedFiles = await preProcessConfigs(files);
-
     const ai = new GoogleGenAI({ apiKey });
-    const isSingle = sanitizedFiles.length === 1;
-    const combinedConfigs = sanitizedFiles.map(f => `FILE: ${f.name}\n---\n${f.content}\n---`).join('\n\n');
+    
+    const isSingle = files.length === 1;
+    const combinedConfigs = files.map(f => `FILE: ${f.name}\n---\n${f.content}\n---`).join('\n\n');
 
     const prompt = isSingle 
-      ? `Perform a deep dive Cisco Device Audit on this configuration.`
-      : `Perform a rigorous Multi-Device Cisco Network Audit focused on consistency.`;
+      ? `Perform a deep dive Cisco Device Audit on this configuration. Focus on:
+         1. SECURITY: VTY access, password encryption, AAA, SSH settings.
+         2. HARDENING: Control Plane Policing (CoPP), logging, NTP, unused service disablement.
+         3. PROTOCOLS: Proper interface configuration, MTU, STP features (BPDU Guard, Root Guard).
+         4. COMPLIANCE: Identify what is RIGHT in addition to what is WRONG.`
+      : `Perform a rigorous Multi-Device Cisco Network Audit. Focus on:
+         1. INTER-DEVICE CONSISTENCY: Audit connections between Cisco nodes (e.g., EtherChannel hashing, Trunk native VLAN matches, OSPF timer parity, MTU consistency).
+         2. NETWORK TOPOLOGY HEALTH: Spanning-tree root placement, routing protocol optimization.
+         3. SECURITY & COMPLIANCE: Unified auditing across the entire provided set.
+         4. ARCHITECTURAL VIOLATIONS: Misconfigurations in IOS/XE/XR relative to Cisco Validated Designs (CVD).`;
 
     const response = await ai.models.generateContent({
       model: "gemini-3-pro-preview",
@@ -127,8 +132,11 @@ export async function analyzeCiscoConfigs(files: ConfigFile[]): Promise<Analysis
       Configurations:
       ${combinedConfigs}`,
       config: {
-        systemInstruction: `You are a CCIE-level Network Architect. 
-        Note: Some sensitive data (passwords/keys) may have been replaced with <REDACTED> by the pre-processor for security. Focus on structural integrity and best practices.
+        systemInstruction: `You are a CCIE-level Network Architect. Your knowledge base is strictly Cisco-centric (CVDs, Configuration Guides, and Security Best Practices). 
+        - For SINGLE configs: Provide detailed device-level inspection.
+        - For BULK configs: Focus heavily on inter-device consistency and network-wide architectural integrity.
+        - CLI COMMAND RULES: Every Cisco command must be on its own line. Use standard CLI hierarchy. NEVER use semicolons (;) to combine commands.
+        - FORMATTING: You may use basic Markdown for emphasis.
         Output strictly valid JSON matching the schema.`,
         responseMimeType: "application/json",
         responseSchema: ANALYSIS_SCHEMA,
@@ -141,7 +149,8 @@ export async function analyzeCiscoConfigs(files: ConfigFile[]): Promise<Analysis
     
     return JSON.parse(resultText) as AnalysisResult;
   } catch (error: any) {
-    if (error.message?.includes("Requested entity was not found") || error.message === "API_KEY_NOT_FOUND") {
+    console.error("Gemini Cisco Audit Error:", error);
+    if (error.message?.includes("Requested entity was not found") || error.status === 404 || error.message === "API_KEY_NOT_FOUND") {
       throw new Error("API_KEY_NOT_FOUND");
     }
     throw new Error(error.message || "Failed to analyze Cisco configurations.");

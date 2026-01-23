@@ -1,47 +1,37 @@
 
 /**
- * Cisco IOS Insight: Pre-processing Worker
- * Handles heavy string manipulation and PII redaction off-main-thread.
+ * Cloudflare Worker Entry Point
+ * 
+ * This worker handles routing for the Cisco IOS Insight application.
+ * It serves static assets from the provided directory and fallbacks to index.html
+ * for SPA (Single Page Application) routing support.
  */
 
-import { ConfigFile } from './types';
+interface Env {
+  // The ASSETS binding is automatically provided by Cloudflare 
+  // when "assets" is configured in wrangler.json
+  ASSETS: {
+    fetch: typeof fetch;
+  };
+}
 
-// Sensitive patterns to redact (Passwords, Keys, Community Strings)
-const REDACTION_PATTERNS = [
-  /(password (?:7|0|8|9) )\S+/gi,
-  /(secret (?:5|8|9) )\S+/gi,
-  /(key-string (?:7|0) )\S+/gi,
-  /(snmp-server community )\S+/gi,
-  /(neighbor \S+ password (?:7|0) )\S+/gi,
-  /(username \S+ (?:password|secret) (?:7|5|0) )\S+/gi,
-  /(key hex-string )\S+/gi,
-  /(pre-shared-key (?:local|remote) (?:0|6|7) )\S+/gi
-];
+export default {
+  async fetch(request: Request, env: Env): Promise<Response> {
+    const url = new URL(request.url);
 
-self.onmessage = (e: MessageEvent<{ files: ConfigFile[] }>) => {
-  const { files } = e.data;
-  
-  const processedFiles = files.map(file => {
-    let content = file.content;
-    
-    // 1. Basic Sanitization: Remove excessive whitespace and control characters
-    content = content.replace(/\r/g, '').trim();
-    
-    // 2. Security Redaction: Replace sensitive strings with <REDACTED>
-    REDACTION_PATTERNS.forEach(pattern => {
-      content = content.replace(pattern, '$1<REDACTED>');
-    });
+    // Attempt to serve the request from static assets
+    const response = await env.ASSETS.fetch(request);
 
-    // 3. Heuristic: Identify the hostname for better context
-    const hostnameMatch = content.match(/^hostname\s+(\S+)/m);
-    const identifiedHostname = hostnameMatch ? hostnameMatch[1] : 'Unknown-Device';
+    /**
+     * SPA Routing Logic:
+     * If the asset is not found (404) and it's a browser request (GET),
+     * we serve index.html so the React app can handle the route client-side.
+     */
+    if (response.status === 404 && request.method === 'GET') {
+      const indexRequest = new Request(new URL('/index.html', url), request);
+      return env.ASSETS.fetch(indexRequest);
+    }
 
-    return {
-      ...file,
-      content,
-      identifiedHostname
-    };
-  });
-
-  self.postMessage({ processedFiles });
+    return response;
+  },
 };
