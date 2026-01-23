@@ -12,9 +12,7 @@ export default defineConfig({
   },
   build: {
     outDir: 'dist',
-    sourcemap: false // Reduced for faster production builds
-  },
-  server: {
-    port: 3000
+    sourcemap: false,
+    minify: 'esbuild',
   }
 });
