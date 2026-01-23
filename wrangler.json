@@ -1,21 +1,11 @@
 {
   "name": "cisco-ios-insight",
-  "compatibility_date": "2026-01-23",
+  "compatibility_date": "2024-11-01",
   "assets": {
     "directory": "./dist",
     "binding": "ASSETS"
   },
   "observability": {
     "enabled": true
-  },
-  "routes": [
-    {
-      "pattern": "cisco-ios-insight.firestarterforge.dev",
-      "custom_domain": true
-    },
-    {
-      "pattern": "www.cisco-ios-insight.firestarterforge.dev",
-      "custom_domain": true
-    }
-  ]
+  }
 }
