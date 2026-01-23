@@ -2,7 +2,7 @@
 import React from 'react';
 import { AnalysisResult, Severity } from '../types';
 import { PieChart, Pie, Cell, ResponsiveContainer, Tooltip } from 'recharts';
-import { Shield, Server, Network, Activity, ShieldCheck } from 'lucide-react';
+import { Shield, Network, Activity, ShieldCheck, Globe, ExternalLink, Map, AlertCircle } from 'lucide-react';
 import ReactMarkdown from 'react-markdown';
 
 interface Props {
@@ -26,128 +26,194 @@ const Dashboard: React.FC<Props> = ({ result }) => {
   };
 
   return (
-    <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 sm:gap-6">
-      {/* Network Overview */}
-      <div className="bg-slate-900 border border-slate-800 rounded-2xl sm:rounded-3xl p-5 sm:p-8 flex flex-col justify-between">
-        <div>
-          <div className="flex items-center space-x-2 text-slate-500 text-[9px] sm:text-[10px] mb-4 sm:mb-6 uppercase tracking-widest font-black">
-            <Network className="w-3 h-3" />
-            <span>Node Health</span>
-          </div>
-          <div className="space-y-4 sm:space-y-6">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-slate-500 text-[9px] sm:text-[10px] font-bold uppercase tracking-wider">Pass Rate</p>
-                <div className="flex items-baseline gap-2">
-                  <h3 className="text-2xl sm:text-3xl font-black text-emerald-500">{passedCount}</h3>
-                  <span className="text-slate-500 text-[10px] font-medium">checks passed</span>
+    <div className="space-y-6">
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 sm:gap-6">
+        {/* Network Overview */}
+        <div className="bg-slate-900 border border-slate-800 rounded-2xl sm:rounded-3xl p-5 sm:p-8 flex flex-col justify-between">
+          <div>
+            <div className="flex items-center space-x-2 text-slate-500 text-[9px] sm:text-[10px] mb-4 sm:mb-6 uppercase tracking-widest font-black">
+              <Network className="w-3 h-3" />
+              <span>Node Health</span>
+            </div>
+            <div className="space-y-4 sm:space-y-6">
+              <div className="flex items-center justify-between">
+                <div>
+                  <p className="text-slate-500 text-[9px] sm:text-[10px] font-bold uppercase tracking-wider">Pass Rate</p>
+                  <div className="flex items-baseline gap-2">
+                    <h3 className="text-2xl sm:text-3xl font-black text-emerald-500">{passedCount}</h3>
+                    <span className="text-slate-500 text-[10px] font-medium">checks passed</span>
+                  </div>
+                </div>
+                <div className="bg-emerald-500/10 p-2 sm:p-3 rounded-xl sm:rounded-2xl">
+                  <ShieldCheck className="w-5 h-5 sm:w-6 sm:h-6 text-emerald-500" />
                 </div>
               </div>
-              <div className="bg-emerald-500/10 p-2 sm:p-3 rounded-xl sm:rounded-2xl">
-                <ShieldCheck className="w-5 h-5 sm:w-6 sm:h-6 text-emerald-500" />
+              <div>
+                <p className="text-slate-500 text-[9px] sm:text-[10px] font-bold uppercase tracking-wider mb-2">Hostnames</p>
+                <div className="flex flex-wrap gap-1.5 sm:gap-2">
+                  {result.detectedDevices.map(d => (
+                    <span key={d} className="px-2 py-0.5 sm:px-3 sm:py-1 bg-slate-800 border border-slate-700 rounded-md sm:rounded-lg text-[9px] sm:text-xs font-mono text-slate-300">
+                      {d}
+                    </span>
+                  ))}
+                </div>
               </div>
             </div>
-            <div>
-              <p className="text-slate-500 text-[9px] sm:text-[10px] font-bold uppercase tracking-wider mb-2">Hostnames</p>
-              <div className="flex flex-wrap gap-1.5 sm:gap-2">
-                {result.detectedDevices.map(d => (
-                  <span key={d} className="px-2 py-0.5 sm:px-3 sm:py-1 bg-slate-800 border border-slate-700 rounded-md sm:rounded-lg text-[9px] sm:text-xs font-mono text-slate-300">
-                    {d}
-                  </span>
-                ))}
-              </div>
+          </div>
+          <div className="mt-6 sm:mt-8 pt-4 sm:pt-6 border-t border-slate-800">
+            <div className="text-slate-400 text-[11px] sm:text-sm italic leading-relaxed prose prose-invert max-w-none">
+              <ReactMarkdown components={{ 
+                p: ({children}) => <span>"{children}"</span>,
+                strong: ({children}) => <strong className="font-black text-slate-200">{children}</strong>
+              }}>
+                {result.summary}
+              </ReactMarkdown>
             </div>
           </div>
         </div>
-        <div className="mt-6 sm:mt-8 pt-4 sm:pt-6 border-t border-slate-800">
-          <div className="text-slate-400 text-[11px] sm:text-sm italic leading-relaxed prose prose-invert max-w-none">
-            <ReactMarkdown components={{ 
-              p: ({children}) => <span>"{children}"</span>,
-              strong: ({children}) => <strong className="font-black text-slate-200">{children}</strong>
-            }}>
-              {result.summary}
+
+        {/* Health Score */}
+        <div className="bg-slate-900 border border-slate-800 rounded-2xl sm:rounded-3xl p-5 sm:p-8 flex flex-col items-center justify-center text-center">
+          <div className="flex items-center space-x-2 text-slate-500 text-[9px] sm:text-[10px] mb-4 sm:mb-8 uppercase tracking-widest font-black">
+            <Shield className="w-3 h-3" />
+            <span>Audit Index</span>
+          </div>
+          <div className="relative">
+            <svg className="w-28 h-28 sm:w-40 sm:h-40 transform -rotate-90">
+              <circle
+                className="text-slate-800"
+                strokeWidth="8"
+                stroke="currentColor"
+                fill="transparent"
+                r="50"
+                cx="56"
+                cy="56"
+                style={{ r: 'calc(50% - 6px)', cx: '50%', cy: '50%' }}
+              />
+              <circle
+                className={getScoreColor(result.securityScore)}
+                strokeWidth="8"
+                strokeDasharray={314} 
+                strokeDashoffset={314 * (1 - result.securityScore / 100)}
+                strokeLinecap="round"
+                stroke="currentColor"
+                fill="transparent"
+                r="50"
+                cx="56"
+                cy="56"
+                style={{ r: 'calc(50% - 6px)', cx: '50%', cy: '50%', strokeDasharray: 314, strokeDashoffset: 314 * (1 - result.securityScore / 100) }}
+              />
+            </svg>
+            <div className="absolute inset-0 flex flex-col items-center justify-center">
+              <span className={`text-2xl sm:text-4xl font-black ${getScoreColor(result.securityScore)}`}>{result.securityScore}%</span>
+              <span className="text-[8px] sm:text-[10px] text-slate-500 font-bold uppercase tracking-widest mt-0.5">Score</span>
+            </div>
+          </div>
+          <p className="mt-6 sm:mt-8 text-slate-400 text-xs sm:text-sm leading-relaxed px-2">
+            {result.securityScore >= 80 ? 'Excellent hygiene.' : result.securityScore >= 50 ? 'Requires alignment.' : 'High risk detection.'}
+          </p>
+        </div>
+
+        {/* Issues Distribution */}
+        <div className="bg-slate-900 border border-slate-800 rounded-2xl sm:rounded-3xl p-5 sm:p-8">
+          <div className="flex items-center space-x-2 text-slate-500 text-[9px] sm:text-[10px] mb-4 uppercase tracking-widest font-black">
+            <Activity className="w-3 h-3" />
+            <span>Findings Breakdown</span>
+          </div>
+          <div className="h-40 sm:h-56">
+            <ResponsiveContainer width="100%" height="100%">
+              <PieChart>
+                <Pie
+                  data={severityData}
+                  innerRadius={50}
+                  outerRadius={70}
+                  paddingAngle={6}
+                  dataKey="value"
+                >
+                  {severityData.map((entry, index) => (
+                    <Cell key={`cell-${index}`} fill={entry.color} stroke="none" />
+                  ))}
+                </Pie>
+                <Tooltip 
+                  contentStyle={{ backgroundColor: '#0f172a', border: '1px solid #1e293b', borderRadius: '8px', color: '#fff', fontSize: '10px' }}
+                  itemStyle={{ color: '#fff', padding: '2px 0' }}
+                />
+              </PieChart>
+            </ResponsiveContainer>
+          </div>
+          <div className="grid grid-cols-3 gap-1.5 mt-2 sm:mt-4">
+            {severityData.map((d) => (
+              <div key={d.name} className="flex flex-col items-center p-1.5 sm:p-2 rounded-lg sm:rounded-xl bg-slate-950/50 border border-slate-800">
+                <div className="w-1.5 h-1.5 rounded-full mb-0.5 sm:mb-1" style={{ backgroundColor: d.color }}></div>
+                <span className="text-[8px] sm:text-[10px] text-slate-500 uppercase font-black">{d.name}</span>
+                <span className="text-sm sm:text-lg font-bold text-white">{d.value}</span>
+              </div>
+            ))}
+          </div>
+        </div>
+      </div>
+
+      {/* New Row: Topology and Vulnerabilities */}
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 sm:gap-6">
+        {/* Topology Inference */}
+        <div className="bg-slate-900 border border-slate-800 rounded-2xl sm:rounded-3xl p-5 sm:p-8 space-y-4">
+          <div className="flex items-center space-x-2 text-slate-500 text-[9px] sm:text-[10px] uppercase tracking-widest font-black">
+            <Map className="w-3 h-3" />
+            <span>Network Topology Inference</span>
+          </div>
+          <div className="prose prose-invert prose-sm max-w-none text-slate-300 leading-relaxed bg-slate-950/50 p-4 rounded-xl border border-slate-800/50 italic">
+            <ReactMarkdown>
+              {result.topologySummary}
             </ReactMarkdown>
           </div>
         </div>
-      </div>
 
-      {/* Health Score */}
-      <div className="bg-slate-900 border border-slate-800 rounded-2xl sm:rounded-3xl p-5 sm:p-8 flex flex-col items-center justify-center text-center">
-        <div className="flex items-center space-x-2 text-slate-500 text-[9px] sm:text-[10px] mb-4 sm:mb-8 uppercase tracking-widest font-black">
-          <Shield className="w-3 h-3" />
-          <span>Audit Index</span>
-        </div>
-        <div className="relative">
-          <svg className="w-28 h-28 sm:w-40 sm:h-40 transform -rotate-90">
-            <circle
-              className="text-slate-800"
-              strokeWidth="8"
-              stroke="currentColor"
-              fill="transparent"
-              r="50"
-              cx="56"
-              cy="56"
-              style={{ r: 'calc(50% - 6px)', cx: '50%', cy: '50%' }}
-            />
-            <circle
-              className={getScoreColor(result.securityScore)}
-              strokeWidth="8"
-              strokeDasharray={314} 
-              strokeDashoffset={314 * (1 - result.securityScore / 100)}
-              strokeLinecap="round"
-              stroke="currentColor"
-              fill="transparent"
-              r="50"
-              cx="56"
-              cy="56"
-              style={{ r: 'calc(50% - 6px)', cx: '50%', cy: '50%', strokeDasharray: 314, strokeDashoffset: 314 * (1 - result.securityScore / 100) }}
-            />
-          </svg>
-          <div className="absolute inset-0 flex flex-col items-center justify-center">
-            <span className={`text-2xl sm:text-4xl font-black ${getScoreColor(result.securityScore)}`}>{result.securityScore}%</span>
-            <span className="text-[8px] sm:text-[10px] text-slate-500 font-bold uppercase tracking-widest mt-0.5">Score</span>
-          </div>
-        </div>
-        <p className="mt-6 sm:mt-8 text-slate-400 text-xs sm:text-sm leading-relaxed px-2">
-          {result.securityScore >= 80 ? 'Excellent hygiene.' : result.securityScore >= 50 ? 'Requires alignment.' : 'High risk detection.'}
-        </p>
-      </div>
-
-      {/* Issues Distribution */}
-      <div className="bg-slate-900 border border-slate-800 rounded-2xl sm:rounded-3xl p-5 sm:p-8">
-        <div className="flex items-center space-x-2 text-slate-500 text-[9px] sm:text-[10px] mb-4 uppercase tracking-widest font-black">
-          <Activity className="w-3 h-3" />
-          <span>Findings Breakdown</span>
-        </div>
-        <div className="h-40 sm:h-56">
-          <ResponsiveContainer width="100%" height="100%">
-            <PieChart>
-              <Pie
-                data={severityData}
-                innerRadius={50}
-                outerRadius={70}
-                paddingAngle={6}
-                dataKey="value"
-              >
-                {severityData.map((entry, index) => (
-                  <Cell key={`cell-${index}`} fill={entry.color} stroke="none" />
-                ))}
-              </Pie>
-              <Tooltip 
-                contentStyle={{ backgroundColor: '#0f172a', border: '1px solid #1e293b', borderRadius: '8px', color: '#fff', fontSize: '10px' }}
-                itemStyle={{ color: '#fff', padding: '2px 0' }}
-              />
-            </PieChart>
-          </ResponsiveContainer>
-        </div>
-        <div className="grid grid-cols-3 gap-1.5 mt-2 sm:mt-4">
-          {severityData.map((d) => (
-            <div key={d.name} className="flex flex-col items-center p-1.5 sm:p-2 rounded-lg sm:rounded-xl bg-slate-950/50 border border-slate-800">
-              <div className="w-1.5 h-1.5 rounded-full mb-0.5 sm:mb-1" style={{ backgroundColor: d.color }}></div>
-              <span className="text-[8px] sm:text-[10px] text-slate-500 uppercase font-black">{d.name}</span>
-              <span className="text-sm sm:text-lg font-bold text-white">{d.value}</span>
+        {/* Real-time Security Intelligence */}
+        <div className="bg-slate-900 border border-slate-800 rounded-2xl sm:rounded-3xl p-5 sm:p-8 space-y-4 flex flex-col">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center space-x-2 text-slate-500 text-[9px] sm:text-[10px] uppercase tracking-widest font-black">
+              <Globe className="w-3 h-3 text-blue-500" />
+              <span>Security Intelligence (Search-Grounded)</span>
             </div>
-          ))}
+            <div className="bg-blue-600/10 px-2 py-0.5 rounded text-[8px] font-black text-blue-500 uppercase tracking-widest border border-blue-500/20">
+              Live Feed
+            </div>
+          </div>
+          
+          <div className="space-y-3 overflow-y-auto max-h-64 pr-2 custom-scrollbar flex-1">
+            {result.realTimeVulnerabilities.length > 0 ? (
+              result.realTimeVulnerabilities.map((vuln, idx) => (
+                <div key={idx} className="bg-slate-950 border border-slate-800 p-3 rounded-xl space-y-1.5 group">
+                  <div className="flex items-center justify-between">
+                    <span className="text-[9px] font-black text-red-500 bg-red-500/10 px-1.5 py-0.5 rounded uppercase tracking-tighter">{vuln.id}</span>
+                    <a href={vuln.url} target="_blank" rel="noopener noreferrer" className="text-slate-500 hover:text-blue-400 transition-colors">
+                      <ExternalLink className="w-3 h-3" />
+                    </a>
+                  </div>
+                  <h5 className="text-xs font-bold text-white group-hover:text-blue-400 transition-colors">{vuln.title}</h5>
+                  <p className="text-[10px] text-slate-500 line-clamp-2 leading-relaxed">{vuln.summary}</p>
+                </div>
+              ))
+            ) : (
+              <div className="text-center py-8">
+                <ShieldCheck className="w-8 h-8 text-slate-800 mx-auto mb-2" />
+                <p className="text-[10px] text-slate-600 uppercase font-black">No major real-time threats detected via Google Search</p>
+              </div>
+            )}
+          </div>
+
+          {result.sources.length > 0 && (
+            <div className="pt-4 border-t border-slate-800">
+              <h6 className="text-[8px] font-black text-slate-600 uppercase tracking-widest mb-2">Grounding Sources:</h6>
+              <div className="flex flex-wrap gap-2">
+                {result.sources.map((source, idx) => (
+                  <a key={idx} href={source.url} target="_blank" rel="noopener noreferrer" className="text-[9px] text-blue-500/70 hover:text-blue-400 flex items-center gap-1 transition-colors underline decoration-blue-500/20">
+                    {source.title.length > 30 ? source.title.substring(0, 30) + '...' : source.title}
+                  </a>
+                ))}
+              </div>
+            </div>
+          )}
         </div>
       </div>
     </div>

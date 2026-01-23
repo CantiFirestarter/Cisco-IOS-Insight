@@ -1,0 +1,24 @@
+{
+  "name": "cisco-ios-insight",
+  "compatibility_date": "2026-01-23",
+  "assets": {
+    "directory": "dist",
+    "binding": "ASSETS"
+  },
+  "build": {
+    "command": "npm run build"
+  },
+  "observability": {
+    "enabled": true
+  },
+  "routes": [
+    {
+      "pattern": "cisco-ios-insight.firestarterforge.dev",
+      "custom_domain": true
+    },
+    {
+      "pattern": "www.cisco-ios-insight.firestarterforge.dev",
+      "custom_domain": true
+    }
+  ]
+}

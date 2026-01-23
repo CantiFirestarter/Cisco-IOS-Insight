@@ -53,16 +53,123 @@ const ConfigUploader: React.FC<Props> = ({ onAnalyze }) => {
   };
 
   const addSampleFiles = () => {
-    const samples = [
+    const samples: ConfigFile[] = [
       {
         id: 's1',
-        name: 'Core-Switch.cfg',
-        content: 'hostname CORE-01\ninterface GigabitEthernet0/1\n switchport mode trunk\n switchport trunk allowed vlan 10,20\n spanning-tree priority 4096\ninterface Vlan10\n ip address 10.0.10.1 255.255.255.0'
+        name: 'HQ-Edge-XR-01.cfg',
+        content: `hostname HQ-EDGE-01
+! IOS XR Configuration
+service telnet
+!
+interface GigabitEthernet0/0/0/0
+ description WAN-Link-ISP-A
+ ipv4 address 1.1.1.2 255.255.255.252
+ mtu 1500
+!
+interface GigabitEthernet0/0/0/1
+ description LAN-To-Core
+ ipv4 address 10.255.255.1 255.255.255.252
+ mtu 9216
+!
+router ospf 1
+ area 0
+  interface GigabitEthernet0/0/0/1
+  !
+ !
+!
+router bgp 65001
+ address-family ipv4 unicast
+ !
+ neighbor 1.1.1.1
+  remote-as 100
+  address-family ipv4 unicast
+   route-policy PASS-ALL in
+   route-policy PASS-ALL out
+  !
+ !
+!
+username admin
+ group root-lr
+ group cisco-support
+ secret 5 $1$mER8$96SshVDUU.
+!
+line default
+ transport input telnet ssh
+!`
       },
       {
         id: 's2',
-        name: 'Access-Switch.cfg',
-        content: 'hostname ACCESS-01\ninterface GigabitEthernet0/1\n switchport mode trunk\n switchport trunk allowed vlan 10\n! MISSING VLAN 20 - Conflict!\ninterface Vlan10\n ip address 10.0.10.2 255.255.255.0'
+        name: 'HQ-Core-XE-01.cfg',
+        content: `hostname HQ-CORE-01
+! IOS XE Configuration
+interface TenGigabitEthernet1/0/1
+ description Link-To-Edge
+ no switchport
+ ip address 10.255.255.2 255.255.255.252
+ mtu 1500
+ ! CONFLICT: MTU Mismatch with XR (9216 vs 1500)
+!
+interface Vlan10
+ description User-Data
+ ip address 10.10.10.1 255.255.255.0
+ standby 10 ip 10.10.10.254
+ standby 10 priority 110
+ standby 10 preempt
+!
+router ospf 1
+ router-id 2.2.2.2
+ network 10.255.255.0 0.0.0.3 area 0
+ network 10.10.10.0 0.0.0.255 area 0
+!
+ip http server
+no ip http secure-server
+! SECURITY: Plaintext HTTP enabled`
+      },
+      {
+        id: 's3',
+        name: 'Distribution-Switch.cfg',
+        content: `hostname DIST-SW-01
+! Legacy IOS
+interface Port-channel1
+ switchport mode trunk
+!
+interface GigabitEthernet0/1
+ channel-group 1 mode on
+ ! ISSUE: Static EtherChannel instead of LACP
+ switchport mode trunk
+!
+interface GigabitEthernet0/2
+ channel-group 1 mode on
+ switchport mode trunk
+!
+spanning-tree mode pvst
+spanning-tree vlan 1-4094 priority 32768
+! ARCHITECTURE: Distribution should be Root for its VLANs
+!
+snmp-server community public RO
+! SECURITY: Weak SNMP string`
+      },
+      {
+        id: 's4',
+        name: 'Branch-Router.cfg',
+        content: `hostname BRANCH-01
+! IOS XE - Security Hardening Test
+aaa new-model
+aaa authentication login default local
+!
+interface Tunnel0
+ ip address 172.16.1.1 255.255.255.0
+ tunnel source GigabitEthernet0/0
+ tunnel destination 1.1.1.2
+ ! MISSING: tunnel protection ipsec profile...
+!
+ip access-list extended VTY_ACCESS
+ permit ip 10.0.0.0 0.255.255.255 any
+!
+line vty 0 4
+ access-class VTY_ACCESS in
+ transport input ssh
+! VALID: Good SSH hardening`
       }
     ];
     setFiles(samples);
@@ -187,7 +294,7 @@ const ConfigUploader: React.FC<Props> = ({ onAnalyze }) => {
             className="flex items-center space-x-2 text-[10px] sm:text-xs font-bold text-slate-500 hover:text-blue-400 transition-colors uppercase tracking-widest"
           >
             <Plus className="w-3 h-3 sm:w-4 sm:h-4" />
-            <span>Load Samples</span>
+            <span>Load Complex Samples</span>
           </button>
           
           <button
