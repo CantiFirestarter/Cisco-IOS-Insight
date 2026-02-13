@@ -11,13 +11,11 @@ const ConfigUploader: React.FC<Props> = ({ onAnalyze }) => {
   const [files, setFiles] = useState<ConfigFile[]>([]);
   const [pastedConfig, setPastedConfig] = useState('');
   const [isPasteMode, setIsPasteMode] = useState(false);
+  const [isDragging, setIsDragging] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
-  const handleFileUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const uploadedFiles = e.target.files;
-    if (!uploadedFiles) return;
-
-    Array.from(uploadedFiles).forEach(file => {
+  const processFileList = (fileList: FileList) => {
+    Array.from(fileList).forEach(file => {
       const reader = new FileReader();
       reader.onload = (event) => {
         const content = event.target?.result as string;
@@ -32,8 +30,38 @@ const ConfigUploader: React.FC<Props> = ({ onAnalyze }) => {
       };
       reader.readAsText(file);
     });
+  };
+
+  const handleFileUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const uploadedFiles = e.target.files;
+    if (!uploadedFiles) return;
+    processFileList(uploadedFiles);
     if (fileInputRef.current) fileInputRef.current.value = '';
     setIsPasteMode(false);
+  };
+
+  const handleDragOver = (e: React.DragEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    setIsDragging(true);
+  };
+
+  const handleDragLeave = (e: React.DragEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    setIsDragging(false);
+  };
+
+  const handleDrop = (e: React.DragEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    setIsDragging(false);
+
+    const droppedFiles = e.dataTransfer.files;
+    if (droppedFiles && droppedFiles.length > 0) {
+      processFileList(droppedFiles);
+      setIsPasteMode(false);
+    }
   };
 
   const removeFile = (id: string) => {
@@ -95,8 +123,15 @@ const ConfigUploader: React.FC<Props> = ({ onAnalyze }) => {
         {!isPasteMode ? (
           <div className="space-y-6">
             <div 
-              className="flex flex-col items-center justify-center border-2 border-dashed border-slate-200 dark:border-slate-800 rounded-xl py-8 sm:py-12 px-4 hover:border-blue-500/50 transition-colors group relative cursor-pointer bg-slate-50/50 dark:bg-slate-950/20"
+              onDragOver={handleDragOver}
+              onDragLeave={handleDragLeave}
+              onDrop={handleDrop}
               onClick={() => fileInputRef.current?.click()}
+              className={`flex flex-col items-center justify-center border-2 border-dashed rounded-xl py-8 sm:py-12 px-4 transition-all group relative cursor-pointer ${
+                isDragging 
+                  ? 'border-blue-500 bg-blue-50 dark:bg-blue-900/10 scale-[1.01]' 
+                  : 'border-slate-200 dark:border-slate-800 bg-slate-50/50 dark:bg-slate-950/20 hover:border-blue-500/50'
+              }`}
             >
               <input 
                 type="file" 
@@ -106,10 +141,12 @@ const ConfigUploader: React.FC<Props> = ({ onAnalyze }) => {
                 multiple
                 accept=".txt,.cfg,.log,.conf,.ios,.cisco"
               />
-              <div className="bg-blue-600/10 p-3 sm:p-4 rounded-xl sm:rounded-2xl mb-3 sm:mb-4 group-hover:scale-110 transition-transform">
-                <Upload className="w-6 h-6 sm:w-8 sm:h-8 text-blue-600 dark:text-blue-500" />
+              <div className={`p-3 sm:p-4 rounded-xl sm:rounded-2xl mb-3 sm:mb-4 transition-all ${isDragging ? 'bg-blue-600 text-white scale-110 shadow-lg shadow-blue-500/30' : 'bg-blue-600/10 text-blue-600 dark:text-blue-500 group-hover:scale-110'}`}>
+                <Upload className={`w-6 h-6 sm:w-8 sm:h-8 ${isDragging ? 'text-white' : ''}`} />
               </div>
-              <h3 className="text-base sm:text-xl font-bold text-slate-900 dark:text-white mb-1 sm:mb-2">Drop configs or browse</h3>
+              <h3 className="text-base sm:text-xl font-bold text-slate-900 dark:text-white mb-1 sm:mb-2">
+                {isDragging ? 'Release to upload' : 'Drop configs or browse'}
+              </h3>
               <p className="text-slate-500 text-[10px] sm:text-sm text-center max-w-[200px] sm:max-w-sm mb-4">
                 Upload raw exports from IOS, IOS XE, or IOS XR.
               </p>

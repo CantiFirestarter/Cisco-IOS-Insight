@@ -11,6 +11,7 @@ export interface AnalysisIssue {
   title: string;
   description: string;
   remediation: string;
+  iosVersions?: string[]; // e.g., ["IOS XE 17.9.4", "IOS 15.6(2)T"]
   affectedConfig?: string;
   affectedDevices?: string[];
 }
@@ -20,6 +21,7 @@ export interface SuccessfulCheck {
   title: string;
   description: string;
   validatedConfig: string;
+  iosVersions?: string[]; // e.g., ["IOS XE 17.x", "IOS 15.x"]
   affectedDevices: string[];
 }
 
@@ -34,6 +36,7 @@ export interface AnalysisResult {
   summary: string;
   deviceCount: number;
   detectedDevices: string[];
+  detectedPlatforms: string[]; // Unique list of Cisco OS types and versions detected
   issues: AnalysisIssue[];
   networkWideIssues: AnalysisIssue[];
   successfulChecks: SuccessfulCheck[];

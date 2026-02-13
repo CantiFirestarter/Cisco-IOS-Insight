@@ -1,7 +1,7 @@
 
 import React, { useState, useMemo } from 'react';
 import { AnalysisResult, Severity, AnalysisIssue, SuccessfulCheck, BestPractice } from '../types';
-import { ShieldAlert, AlertTriangle, Info, CheckCircle2, Copy, ChevronDown, ChevronUp, Network, Server, ShieldCheck, Terminal, Layers, Filter, X, Check, Lightbulb, Eye, EyeOff } from 'lucide-react';
+import { ShieldAlert, AlertTriangle, Info, CheckCircle2, Copy, ChevronDown, ChevronUp, Network, Server, ShieldCheck, Terminal, Layers, Filter, X, Check, Lightbulb, Eye, EyeOff, Cpu, HelpCircle, Globe, ClipboardList } from 'lucide-react';
 import ReactMarkdown from 'react-markdown';
 
 interface Props {
@@ -9,7 +9,8 @@ interface Props {
 }
 
 const AnalysisResults: React.FC<Props> = ({ result }) => {
-  const [activeTab, setActiveTab] = useState<'network' | 'device' | 'compliant' | 'bestPractices'>('network');
+  const [activeTab, setActiveTab] = useState<'network' | 'device' | 'compliant' | 'bestPractices' | 'remediation'>('network');
+  const [showTooltip, setShowTooltip] = useState(false);
   
   // Filter states
   const [severityFilter, setSeverityFilter] = useState<Severity | 'ALL'>('ALL');
@@ -28,14 +29,35 @@ const AnalysisResults: React.FC<Props> = ({ result }) => {
 
   const bestPracticeCategories = Object.keys(groupedBestPractices);
 
+  // Group Remediation by Category
+  const groupedRemediation = useMemo(() => {
+    const groups: Record<string, { commands: string[]; issues: string[] }> = {};
+    const allIssues = [...result.issues, ...result.networkWideIssues];
+    
+    allIssues.forEach(issue => {
+      const cat = issue.category || 'Uncategorized';
+      if (!groups[cat]) groups[cat] = { commands: [], issues: [] };
+      groups[cat].commands.push(issue.remediation);
+      groups[cat].issues.push(issue.title);
+    });
+    
+    return groups;
+  }, [result.issues, result.networkWideIssues]);
+
+  const remediationCategories = Object.keys(groupedRemediation).sort();
+
   // Filtering Logic for Issues and Conflicts
   const filteredItems = useMemo(() => {
     const items = activeTab === 'network' ? result.networkWideIssues : result.issues;
-    return items.filter(item => {
-      const severityMatch = severityFilter === 'ALL' || item.severity === severityFilter;
-      const categoryMatch = categoryFilter === 'ALL' || item.category === categoryFilter;
-      return severityMatch && categoryMatch;
-    });
+    // remediation and other tabs handle their own filtering or grouping
+    if (activeTab === 'network' || activeTab === 'device') {
+      return items.filter(item => {
+        const severityMatch = severityFilter === 'ALL' || item.severity === severityFilter;
+        const categoryMatch = categoryFilter === 'ALL' || item.category === categoryFilter;
+        return severityMatch && categoryMatch;
+      });
+    }
+    return [];
   }, [activeTab, result.issues, result.networkWideIssues, severityFilter, categoryFilter]);
 
   // Extract unique categories for filtering
@@ -56,6 +78,45 @@ const AnalysisResults: React.FC<Props> = ({ result }) => {
 
   return (
     <div className="space-y-4 sm:space-y-6">
+      {/* Platform Summary Banner */}
+      {result.detectedPlatforms && result.detectedPlatforms.length > 0 && (
+        <div className="bg-slate-900 border border-slate-800 rounded-2xl p-4 sm:p-5 flex flex-col sm:flex-row items-center justify-between gap-4 animate-in slide-in-from-top-4 duration-500 shadow-xl shadow-blue-500/5">
+          <div className="flex items-center gap-4">
+            <div className="bg-blue-600/10 p-2 rounded-xl border border-blue-500/20">
+              <Cpu className="w-5 h-5 sm:w-6 sm:h-6 text-blue-500" />
+            </div>
+            <div>
+              <h4 className="text-[10px] font-black text-blue-400 uppercase tracking-widest mb-1">Environment OS Intelligence</h4>
+              <div className="flex flex-wrap gap-2">
+                {result.detectedPlatforms.map((p, i) => (
+                  <span key={i} className="px-3 py-1 bg-slate-950 border border-slate-800 rounded-lg text-xs font-bold text-slate-100 flex items-center gap-1.5 transition-all hover:border-blue-500/50">
+                    <div className="w-1.5 h-1.5 rounded-full bg-blue-500"></div>
+                    {p}
+                  </span>
+                ))}
+              </div>
+            </div>
+          </div>
+          <div className="relative">
+            <div 
+              className="flex items-center gap-2 text-slate-500 group cursor-help"
+              onMouseEnter={() => setShowTooltip(true)}
+              onMouseLeave={() => setShowTooltip(false)}
+            >
+               <span className="text-[9px] font-bold uppercase tracking-widest group-hover:text-blue-400 transition-colors">OS Detection Logic</span>
+               <HelpCircle className="w-3.5 h-3.5" />
+            </div>
+            {showTooltip && (
+              <div className="absolute right-0 top-6 w-56 p-4 bg-slate-950 border border-slate-800 rounded-xl shadow-2xl z-50 animate-in fade-in zoom-in-95">
+                <p className="text-[10px] text-slate-300 leading-relaxed italic">
+                  Identified by cross-referencing system version strings, boot images, and kernel-specific features found in the provided configurations.
+                </p>
+              </div>
+            )}
+          </div>
+        </div>
+      )}
+
       <div className="flex border-b border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900/20 px-2 sm:px-4 rounded-t-xl sm:rounded-t-2xl overflow-x-auto no-scrollbar scroll-smooth transition-colors">
         <button
           onClick={() => handleTabChange('network')}
@@ -76,6 +137,16 @@ const AnalysisResults: React.FC<Props> = ({ result }) => {
           <Server className="w-3 h-3" />
           Issues ({result.issues.length})
           {activeTab === 'device' && <div className="absolute bottom-0 left-0 w-full h-1 bg-blue-600 dark:bg-blue-500 rounded-t-full"></div>}
+        </button>
+        <button
+          onClick={() => handleTabChange('remediation')}
+          className={`px-3 py-3 sm:px-6 sm:py-4 font-bold text-[9px] sm:text-xs uppercase tracking-widest transition-all relative flex items-center gap-1.5 sm:gap-2 flex-shrink-0 ${
+            activeTab === 'remediation' ? 'text-amber-600 dark:text-amber-500' : 'text-slate-500 hover:text-slate-900 dark:hover:text-slate-300'
+          }`}
+        >
+          <Terminal className="w-3 h-3" />
+          Fix Plan
+          {activeTab === 'remediation' && <div className="absolute bottom-0 left-0 w-full h-1 bg-amber-600 dark:bg-amber-500 rounded-t-full"></div>}
         </button>
         <button
           onClick={() => handleTabChange('compliant')}
@@ -99,7 +170,7 @@ const AnalysisResults: React.FC<Props> = ({ result }) => {
         </button>
       </div>
 
-      {/* Filter Bar */}
+      {/* Filter Bar (Only for specific tabs) */}
       {(activeTab === 'network' || activeTab === 'device') && (
         <div className="bg-white dark:bg-slate-900/50 border border-slate-200 dark:border-slate-800 p-3 sm:p-4 rounded-xl sm:rounded-2xl flex flex-wrap items-center gap-3 sm:gap-6 shadow-sm dark:shadow-none transition-colors">
           <div className="flex items-center gap-2 text-slate-500">
@@ -164,6 +235,32 @@ const AnalysisResults: React.FC<Props> = ({ result }) => {
           )
         )}
 
+        {activeTab === 'remediation' && (
+          <div className="space-y-6 animate-in slide-in-from-bottom-4 duration-500">
+            <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 p-5 sm:p-8 rounded-2xl sm:rounded-3xl shadow-sm dark:shadow-none transition-colors">
+              <div className="flex items-center gap-3 mb-6">
+                <div className="bg-amber-600/10 p-2.5 rounded-xl border border-amber-600/20">
+                  <ClipboardList className="w-5 h-5 text-amber-600 dark:text-amber-500" />
+                </div>
+                <div>
+                  <h3 className="text-base sm:text-lg font-black text-slate-900 dark:text-white uppercase tracking-tight">Consolidated Implementation Plan</h3>
+                  <p className="text-[10px] sm:text-xs text-slate-500 dark:text-slate-400 font-medium">Aggregated CLI remediation grouped by architectural domain.</p>
+                </div>
+              </div>
+
+              {remediationCategories.length > 0 ? (
+                <div className="space-y-8">
+                  {remediationCategories.map(category => (
+                    <RemediationGroup key={category} category={category} data={groupedRemediation[category]} />
+                  ))}
+                </div>
+              ) : (
+                <EmptyState message="No remediation steps required for this environment." />
+              )}
+            </div>
+          </div>
+        )}
+
         {activeTab === 'compliant' && (
           result.successfulChecks.length > 0 ? (
             result.successfulChecks.map((check, idx) => (
@@ -223,6 +320,62 @@ const EmptyState: React.FC<{ message: string }> = ({ message }) => (
     <p className="text-slate-500 font-medium text-xs sm:text-sm max-w-[200px] sm:max-w-xs">{message}</p>
   </div>
 );
+
+const RemediationGroup: React.FC<{ category: string; data: { commands: string[]; issues: string[] } }> = ({ category, data }) => {
+  const [copied, setCopied] = useState(false);
+  
+  const allCommands = data.commands.join('\n\n');
+
+  const handleCopyAll = async () => {
+    try {
+      await navigator.clipboard.writeText(allCommands);
+      setCopied(true);
+      setTimeout(() => setCopied(false), 2000);
+    } catch (err) {
+      console.error('Failed to copy CLI commands:', err);
+    }
+  };
+
+  return (
+    <div className="space-y-4 border-l-2 border-slate-100 dark:border-slate-800 pl-4 sm:pl-6">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+        <div className="space-y-1">
+          <h4 className="text-xs sm:text-sm font-black text-slate-800 dark:text-white uppercase tracking-widest flex items-center gap-2">
+            <span className="w-1.5 h-1.5 rounded-full bg-blue-600"></span>
+            {category}
+          </h4>
+          <div className="flex flex-wrap gap-1.5">
+            {data.issues.map((title, i) => (
+              <span key={i} className="text-[7px] sm:text-[8px] font-bold text-slate-400 dark:text-slate-500 uppercase tracking-tight border border-slate-100 dark:border-slate-800/50 px-1.5 py-0.5 rounded">
+                {title}
+              </span>
+            ))}
+          </div>
+        </div>
+        <button 
+          onClick={handleCopyAll}
+          className={`shrink-0 flex items-center justify-center gap-2 px-4 py-2 rounded-xl text-[9px] sm:text-[10px] font-black uppercase tracking-widest transition-all active:scale-95 border ${
+            copied 
+            ? 'bg-emerald-600 text-white border-emerald-500 shadow-lg shadow-emerald-600/20' 
+            : 'bg-white dark:bg-slate-950 text-slate-900 dark:text-slate-300 border-slate-200 dark:border-slate-800 hover:border-blue-500/50 hover:bg-slate-50 dark:hover:bg-slate-900'
+          }`}
+        >
+          {copied ? <Check className="w-3.5 h-3.5" /> : <Copy className="w-3.5 h-3.5" />}
+          {copied ? 'Copied Group!' : `Copy All ${category} CLI`}
+        </button>
+      </div>
+
+      <div className="relative group">
+        <div className="bg-slate-950 p-4 sm:p-6 rounded-xl sm:rounded-2xl border border-slate-800 font-mono text-[10px] sm:text-[13px] text-emerald-400/90 whitespace-pre overflow-x-auto custom-scrollbar shadow-inner max-h-[400px]">
+          {allCommands}
+        </div>
+        <div className="absolute top-4 right-4 opacity-0 group-hover:opacity-100 transition-opacity">
+          <Terminal className="w-4 h-4 text-slate-700" />
+        </div>
+      </div>
+    </div>
+  );
+};
 
 const BestPracticeCard: React.FC<{ bp: BestPractice }> = ({ bp }) => {
   const [isOpen, setIsOpen] = useState(false);
@@ -307,6 +460,8 @@ const SuccessCard: React.FC<{ check: SuccessfulCheck }> = ({ check }) => {
     }
   };
 
+  const isMultiPlatform = (check.iosVersions?.length || 0) > 1;
+
   return (
     <div className={`bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl sm:rounded-2xl border-l-4 border-l-emerald-600 dark:border-l-emerald-500 overflow-hidden transition-all duration-300 shadow-sm dark:shadow-lg ${isOpen ? 'ring-1 ring-emerald-500/10 dark:ring-emerald-900/30' : ''}`}>
       <div 
@@ -322,6 +477,23 @@ const SuccessCard: React.FC<{ check: SuccessfulCheck }> = ({ check }) => {
               <span className="text-[7px] sm:text-[9px] font-black px-1.5 py-0.5 sm:px-2.5 sm:py-1 rounded sm:rounded-lg uppercase tracking-widest bg-emerald-600/10 text-emerald-600 dark:text-emerald-500 border border-emerald-600/10 dark:border-emerald-500/20">
                 Validated
               </span>
+              
+              {/* Platform Versions Badges */}
+              <div className="flex flex-wrap items-center gap-1">
+                {isMultiPlatform && (
+                  <span className="text-[7px] sm:text-[8px] font-black px-1.5 py-0.5 rounded uppercase tracking-widest bg-blue-600 text-white flex items-center gap-1">
+                    <Globe className="w-2 h-2" />
+                    Multi-Platform
+                  </span>
+                )}
+                {check.iosVersions?.map((v, i) => (
+                  <span key={i} className="text-[7px] sm:text-[9px] font-black px-1.5 py-0.5 rounded uppercase tracking-widest bg-slate-100 dark:bg-slate-800 text-slate-800 dark:text-slate-200 border border-slate-200 dark:border-slate-700 flex items-center gap-1 shadow-sm">
+                    <Cpu className="w-2 h-2 text-blue-500" />
+                    {v}
+                  </span>
+                ))}
+              </div>
+
               <span className="text-[8px] sm:text-[10px] text-slate-400 dark:text-slate-500 font-black uppercase tracking-widest truncate">
                 {check.category}
               </span>
@@ -428,6 +600,8 @@ const IssueCard: React.FC<{ issue: AnalysisIssue; isNetworkWide?: boolean }> = (
     ? affectedLines.slice(0, TRUNCATION_THRESHOLD).join('\n') + '\n...' 
     : issue.affectedConfig;
 
+  const isMultiPlatform = (issue.iosVersions?.length || 0) > 1;
+
   return (
     <div className={`bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl sm:rounded-2xl border-l-4 ${styles.border} overflow-hidden transition-all duration-300 shadow-sm dark:shadow-lg ${isOpen ? 'ring-1 ring-slate-200 dark:ring-slate-800' : ''}`}>
       <div 
@@ -443,6 +617,23 @@ const IssueCard: React.FC<{ issue: AnalysisIssue; isNetworkWide?: boolean }> = (
               <span className={`text-[7px] sm:text-[9px] font-black px-1.5 py-0.5 sm:px-2.5 sm:py-1 rounded sm:rounded-lg uppercase tracking-widest ${styles.bg} ${styles.text} border border-slate-200 dark:border-white/5`}>
                 {styles.label}
               </span>
+
+              {/* Platform Versions Badges */}
+              <div className="flex flex-wrap items-center gap-1">
+                {isMultiPlatform && (
+                  <span className="text-[7px] sm:text-[8px] font-black px-1.5 py-0.5 rounded uppercase tracking-widest bg-blue-600 text-white flex items-center gap-1">
+                    <Globe className="w-2 h-2" />
+                    Multi-Platform
+                  </span>
+                )}
+                {issue.iosVersions?.map((v, i) => (
+                  <span key={i} className="text-[7px] sm:text-[9px] font-black px-1.5 py-0.5 rounded uppercase tracking-widest bg-slate-100 dark:bg-slate-800 text-slate-800 dark:text-slate-200 border border-slate-200 dark:border-slate-700 flex items-center gap-1 shadow-sm">
+                    <Cpu className="w-2.5 h-2.5 text-blue-500" />
+                    {v}
+                  </span>
+                ))}
+              </div>
+
               <span className="text-[8px] sm:text-[10px] text-slate-400 dark:text-slate-500 font-black uppercase tracking-widest flex items-center gap-1 sm:gap-1.5">
                 {isNetworkWide ? <Network className="w-2.5 h-2.5 sm:w-3 sm:h-3" /> : <Server className="w-2.5 h-2.5 sm:w-3 sm:h-3" />}
                 {issue.category}
