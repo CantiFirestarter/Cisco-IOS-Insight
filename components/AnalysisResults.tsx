@@ -341,7 +341,7 @@ const RemediationGroup: React.FC<{ category: string; items: RemediationItem[] }>
   };
 
   const toggleAll = () => {
-    if (selectedIds.size === items.size) setSelectedIds(new Set());
+    if (selectedIds.size === items.length) setSelectedIds(new Set());
     else setSelectedIds(new Set(items.map(i => i.id)));
   };
 
@@ -376,9 +376,9 @@ const RemediationGroup: React.FC<{ category: string; items: RemediationItem[] }>
               onClick={toggleAll}
               className="text-[9px] font-black text-blue-600 dark:text-blue-500 hover:text-blue-700 uppercase tracking-widest transition-colors"
             >
-              {selectedIds.size === items.size ? 'Deselect All' : 'Select All'}
+              {selectedIds.size === items.length ? 'Deselect All' : 'Select All'}
             </button>
-            <span className="text-[9px] text-slate-400 font-bold uppercase tracking-tight">• {selectedIds.size} / {items.size} Selected</span>
+            <span className="text-[9px] text-slate-400 font-bold uppercase tracking-tight">• {selectedIds.size} / {items.length} Selected</span>
           </div>
         </div>
         <button 
