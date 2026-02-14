@@ -1,11 +1,17 @@
 
 import React, { useState, useMemo } from 'react';
 import { AnalysisResult, Severity, AnalysisIssue, SuccessfulCheck, BestPractice } from '../types';
-import { ShieldAlert, AlertTriangle, Info, CheckCircle2, Copy, ChevronDown, ChevronUp, Network, Server, ShieldCheck, Terminal, Layers, Filter, X, Check, Lightbulb, Eye, EyeOff, Cpu, HelpCircle, Globe, ClipboardList, Share2 } from 'lucide-react';
+import { ShieldAlert, AlertTriangle, Info, CheckCircle2, Copy, ChevronDown, ChevronUp, Network, Server, ShieldCheck, Terminal, Layers, Filter, X, Check, Lightbulb, Eye, EyeOff, Cpu, HelpCircle, Globe, ClipboardList, Share2, Square, CheckSquare } from 'lucide-react';
 import ReactMarkdown from 'react-markdown';
 
 interface Props {
   result: AnalysisResult;
+}
+
+interface RemediationItem {
+  title: string;
+  command: string;
+  id: string;
 }
 
 const AnalysisResults: React.FC<Props> = ({ result }) => {
@@ -29,16 +35,19 @@ const AnalysisResults: React.FC<Props> = ({ result }) => {
 
   const bestPracticeCategories = Object.keys(groupedBestPractices);
 
-  // Group Remediation by Category
+  // Group Remediation by Category with linked titles and commands
   const groupedRemediation = useMemo(() => {
-    const groups: Record<string, { commands: string[]; issues: string[] }> = {};
+    const groups: Record<string, RemediationItem[]> = {};
     const allIssues = [...result.issues, ...result.networkWideIssues];
     
-    allIssues.forEach(issue => {
+    allIssues.forEach((issue, index) => {
       const cat = issue.category || 'Uncategorized';
-      if (!groups[cat]) groups[cat] = { commands: [], issues: [] };
-      groups[cat].commands.push(issue.remediation);
-      groups[cat].issues.push(issue.title);
+      if (!groups[cat]) groups[cat] = [];
+      groups[cat].push({
+        id: `${cat}-${index}`,
+        title: issue.title,
+        command: issue.remediation
+      });
     });
     
     return groups;
@@ -49,7 +58,6 @@ const AnalysisResults: React.FC<Props> = ({ result }) => {
   // Filtering Logic for Issues and Conflicts
   const filteredItems = useMemo(() => {
     const items = activeTab === 'network' ? result.networkWideIssues : result.issues;
-    // remediation and other tabs handle their own filtering or grouping
     if (activeTab === 'network' || activeTab === 'device') {
       return items.filter(item => {
         const severityMatch = severityFilter === 'ALL' || item.severity === severityFilter;
@@ -244,14 +252,14 @@ const AnalysisResults: React.FC<Props> = ({ result }) => {
                 </div>
                 <div>
                   <h3 className="text-base sm:text-lg font-black text-slate-900 dark:text-white uppercase tracking-tight">Consolidated Implementation Plan</h3>
-                  <p className="text-[10px] sm:text-xs text-slate-500 dark:text-slate-400 font-medium">Aggregated CLI remediation grouped by architectural domain.</p>
+                  <p className="text-[10px] sm:text-xs text-slate-500 dark:text-slate-400 font-medium">Selectively aggregate CLI remediation grouped by domain.</p>
                 </div>
               </div>
 
               {remediationCategories.length > 0 ? (
                 <div className="space-y-8">
                   {remediationCategories.map(category => (
-                    <RemediationGroup key={category} category={category} data={groupedRemediation[category]} />
+                    <RemediationGroup key={category} category={category} items={groupedRemediation[category]} />
                   ))}
                 </div>
               ) : (
@@ -321,14 +329,33 @@ const EmptyState: React.FC<{ message: string }> = ({ message }) => (
   </div>
 );
 
-const RemediationGroup: React.FC<{ category: string; data: { commands: string[]; issues: string[] } }> = ({ category, data }) => {
+const RemediationGroup: React.FC<{ category: string; items: RemediationItem[] }> = ({ category, items }) => {
+  const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set(items.map(i => i.id)));
   const [copied, setCopied] = useState(false);
   
-  const allCommands = data.commands.join('\n\n');
+  const toggleItem = (id: string) => {
+    const next = new Set(selectedIds);
+    if (next.has(id)) next.delete(id);
+    else next.add(id);
+    setSelectedIds(next);
+  };
 
-  const handleCopyAll = async () => {
+  const toggleAll = () => {
+    if (selectedIds.size === items.size) setSelectedIds(new Set());
+    else setSelectedIds(new Set(items.map(i => i.id)));
+  };
+
+  const selectedCommands = useMemo(() => {
+    return items
+      .filter(i => selectedIds.has(i.id))
+      .map(i => i.command)
+      .join('\n\n');
+  }, [items, selectedIds]);
+
+  const handleCopySelected = async () => {
+    if (!selectedCommands) return;
     try {
-      await navigator.clipboard.writeText(allCommands);
+      await navigator.clipboard.writeText(selectedCommands);
       setCopied(true);
       setTimeout(() => setCopied(false), 2000);
     } catch (err) {
@@ -337,37 +364,70 @@ const RemediationGroup: React.FC<{ category: string; data: { commands: string[];
   };
 
   return (
-    <div className="space-y-4 border-l-2 border-slate-100 dark:border-slate-800 pl-4 sm:pl-6">
+    <div className="space-y-4 border-l-2 border-slate-100 dark:border-slate-800 pl-4 sm:pl-6 transition-colors">
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
         <div className="space-y-1">
           <h4 className="text-xs sm:text-sm font-black text-slate-800 dark:text-white uppercase tracking-widest flex items-center gap-2">
             <span className="w-1.5 h-1.5 rounded-full bg-blue-600"></span>
             {category}
           </h4>
-          <div className="flex flex-wrap gap-1.5">
-            {data.issues.map((title, i) => (
-              <span key={i} className="text-[7px] sm:text-[8px] font-bold text-slate-400 dark:text-slate-500 uppercase tracking-tight border border-slate-100 dark:border-slate-800/50 px-1.5 py-0.5 rounded">
-                {title}
-              </span>
-            ))}
+          <div className="flex items-center gap-2">
+            <button 
+              onClick={toggleAll}
+              className="text-[9px] font-black text-blue-600 dark:text-blue-500 hover:text-blue-700 uppercase tracking-widest transition-colors"
+            >
+              {selectedIds.size === items.size ? 'Deselect All' : 'Select All'}
+            </button>
+            <span className="text-[9px] text-slate-400 font-bold uppercase tracking-tight">• {selectedIds.size} / {items.size} Selected</span>
           </div>
         </div>
         <button 
-          onClick={handleCopyAll}
+          onClick={handleCopySelected}
+          disabled={selectedIds.size === 0}
           className={`shrink-0 flex items-center justify-center gap-2 px-4 py-2 rounded-xl text-[9px] sm:text-[10px] font-black uppercase tracking-widest transition-all active:scale-95 border ${
             copied 
             ? 'bg-emerald-600 text-white border-emerald-500 shadow-lg shadow-emerald-600/20' 
-            : 'bg-white dark:bg-slate-950 text-slate-900 dark:text-slate-300 border-slate-200 dark:border-slate-800 hover:border-blue-500/50 hover:bg-slate-50 dark:hover:bg-slate-900'
+            : selectedIds.size === 0 
+              ? 'bg-slate-100 dark:bg-slate-800 text-slate-400 border-slate-200 dark:border-slate-700 cursor-not-allowed opacity-50'
+              : 'bg-white dark:bg-slate-950 text-slate-900 dark:text-slate-300 border-slate-200 dark:border-slate-800 hover:border-blue-500/50 hover:bg-slate-50 dark:hover:bg-slate-900'
           }`}
         >
           {copied ? <Check className="w-3.5 h-3.5" /> : <Copy className="w-3.5 h-3.5" />}
-          {copied ? 'Copied Group!' : `Copy All ${category} CLI`}
+          {copied ? 'Copied Selected!' : `Copy Selected ${category}`}
         </button>
       </div>
 
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-2">
+        {items.map((item) => {
+          const isSelected = selectedIds.has(item.id);
+          return (
+            <div 
+              key={item.id}
+              onClick={() => toggleItem(item.id)}
+              className={`flex items-start gap-2.5 p-2.5 rounded-xl border cursor-pointer transition-all ${
+                isSelected 
+                  ? 'bg-blue-50/50 dark:bg-blue-500/10 border-blue-500/40 text-blue-900 dark:text-blue-200' 
+                  : 'bg-white dark:bg-slate-950 border-slate-200 dark:border-slate-800 text-slate-500 hover:border-slate-300 dark:hover:border-slate-700'
+              }`}
+            >
+              <div className="mt-0.5 shrink-0">
+                {isSelected ? (
+                  <CheckSquare className="w-3.5 h-3.5 text-blue-600 dark:text-blue-400" />
+                ) : (
+                  <Square className="w-3.5 h-3.5 text-slate-300 dark:text-slate-700" />
+                )}
+              </div>
+              <span className="text-[10px] sm:text-[11px] font-bold leading-tight tracking-tight uppercase">{item.title}</span>
+            </div>
+          );
+        })}
+      </div>
+
       <div className="relative group">
-        <div className="bg-slate-50 dark:bg-slate-950 p-4 sm:p-6 rounded-xl sm:rounded-2xl border border-slate-200 dark:border-slate-800 font-mono text-[10px] sm:text-[13px] text-emerald-700 dark:text-emerald-400/90 whitespace-pre overflow-x-auto custom-scrollbar shadow-inner max-h-[400px] transition-colors">
-          {allCommands}
+        <div className={`bg-slate-50 dark:bg-slate-950 p-4 sm:p-6 rounded-xl sm:rounded-2xl border border-slate-200 dark:border-slate-800 font-mono text-[10px] sm:text-[13px] whitespace-pre overflow-x-auto custom-scrollbar shadow-inner max-h-[400px] transition-all duration-300 ${
+          selectedIds.size === 0 ? 'opacity-30 blur-[2px]' : 'text-emerald-700 dark:text-emerald-400/90'
+        }`}>
+          {selectedCommands || "# No issues selected for remediation."}
         </div>
         <div className="absolute top-4 right-4 opacity-0 group-hover:opacity-100 transition-opacity">
           <Terminal className="w-4 h-4 text-slate-400 dark:text-slate-700" />
