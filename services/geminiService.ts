@@ -2,13 +2,16 @@
 import { GoogleGenAI, Type } from "@google/genai";
 import { AnalysisResult, Severity, ConfigFile } from "../types";
 
+/**
+ * Audit result schema for advanced Cisco network analysis.
+ */
 const ANALYSIS_SCHEMA = {
   type: Type.OBJECT,
   properties: {
     summary: { type: Type.STRING, description: "Executive summary of the audit findings. Use Markdown for emphasis. Highlight network-wide patterns." },
     deviceCount: { type: Type.NUMBER },
     detectedDevices: { type: Type.ARRAY, items: { type: Type.STRING }, description: "List of hostnames identified." },
-    detectedPlatforms: { type: Type.ARRAY, items: { type: Type.STRING }, description: "Unique list of Cisco OS types and versions detected across all files." },
+    detectedPlatforms: { type: Type.ARRAY, items: { type: Type.STRING }, description: "Unique list of Cisco OS types and versions detected across all files (e.g., 'Cisco IOS XE 17.9.4')." },
     securityScore: { type: Type.NUMBER, description: "Overall Cisco architectural health score (0-100)." },
     issues: {
       type: Type.ARRAY,
@@ -78,10 +81,9 @@ const ANALYSIS_SCHEMA = {
   required: ["summary", "deviceCount", "detectedDevices", "detectedPlatforms", "issues", "networkWideIssues", "successfulChecks", "bestPractices", "securityScore"]
 };
 
-const getEffectiveKey = () => {
-  return localStorage.getItem('cisco_expert_api_key') || process.env.API_KEY || '';
-};
-
+/**
+ * Validates the API connection.
+ */
 export async function validateApiKey(apiKey: string): Promise<{ success: boolean; message: string }> {
   try {
     const ai = new GoogleGenAI({ apiKey });
@@ -100,12 +102,13 @@ export async function validateApiKey(apiKey: string): Promise<{ success: boolean
   }
 }
 
+/**
+ * Analyzes Cisco IOS configurations using Gemini 3 Pro reasoning.
+ */
 export async function analyzeCiscoConfigs(files: ConfigFile[]): Promise<AnalysisResult> {
   try {
-    const apiKey = getEffectiveKey();
-    if (!apiKey) throw new Error("API_KEY_NOT_FOUND");
-
-    const ai = new GoogleGenAI({ apiKey });
+    // Correctly initialize GoogleGenAI with a named parameter using exclusively the environment variable.
+    const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
     const combinedConfigs = files.map(f => `DEVICE_NAME: ${f.name}\nCONFIG_START\n${f.content}\nCONFIG_END`).join('\n\n');
 
     const prompt = `Perform a comprehensive Cisco Network Audit. 
@@ -121,6 +124,7 @@ export async function analyzeCiscoConfigs(files: ConfigFile[]): Promise<Analysis
     INPUT CONFIGURATIONS:
     ${combinedConfigs}`;
 
+    // Generate content using gemini-3-pro-preview with thinking budget for architectural analysis.
     const response = await ai.models.generateContent({
       model: "gemini-3-pro-preview",
       contents: prompt,
@@ -130,22 +134,25 @@ export async function analyzeCiscoConfigs(files: ConfigFile[]): Promise<Analysis
         - RULE 2: TEMPLATE-DRIVEN. When generating remediation, act as if you are updating a Golden Template. Commands must be uniform across the entire device set.
         - RULE 3: NEIGHBORHOOD AWARENESS. Look for IP overlaps or subnet mismatches between devices.
         - RULE 4: VALIDATION. Only use standard Cisco CLI. No shortcuts.
-        - RULE 5: OUTPUT. Strictly JSON following the provided schema.`,
+        - RULE 5: OS DETECTION. Look for specific markers:
+          * IOS XR: Look for 'rp/0/RP0/CPU0', 'commit' model, or 'interface TenGigE0/0/0/0'.
+          * IOS XE: Look for 'license boot level', 'platform hardware', or 'GigabitEthernet1/0/1' (Stacking).
+          * Classic IOS: Look for 'FastEthernet' or 'boot system flash'.
+        - RULE 6: OUTPUT. Strictly JSON following the provided schema.`,
         responseMimeType: "application/json",
         responseSchema: ANALYSIS_SCHEMA,
+        // The thinkingConfig is available for Gemini 3 series models.
         thinkingConfig: { thinkingBudget: 32768 }
       },
     });
 
+    // Extract the text output using the .text property (not a method).
     const resultText = response.text;
     if (!resultText) throw new Error("Empty response from AI");
     
     return JSON.parse(resultText) as AnalysisResult;
   } catch (error: any) {
     console.error("Gemini Cisco Audit Error:", error);
-    if (error.message?.includes("Requested entity was not found") || error.status === 404 || error.message === "API_KEY_NOT_FOUND") {
-      throw new Error("API_KEY_NOT_FOUND");
-    }
     throw new Error(error.message || "Failed to analyze Cisco configurations.");
   }
 }

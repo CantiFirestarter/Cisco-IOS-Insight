@@ -1,7 +1,7 @@
 
 import React, { useState, useMemo } from 'react';
 import { AnalysisResult, Severity, AnalysisIssue, SuccessfulCheck, BestPractice } from '../types';
-import { ShieldAlert, AlertTriangle, Info, CheckCircle2, Copy, ChevronDown, ChevronUp, Network, Server, ShieldCheck, Terminal, Layers, Filter, X, Check, Lightbulb, Eye, EyeOff, Cpu, HelpCircle, Globe, ClipboardList } from 'lucide-react';
+import { ShieldAlert, AlertTriangle, Info, CheckCircle2, Copy, ChevronDown, ChevronUp, Network, Server, ShieldCheck, Terminal, Layers, Filter, X, Check, Lightbulb, Eye, EyeOff, Cpu, HelpCircle, Globe, ClipboardList, Share2 } from 'lucide-react';
 import ReactMarkdown from 'react-markdown';
 
 interface Props {
@@ -78,18 +78,18 @@ const AnalysisResults: React.FC<Props> = ({ result }) => {
 
   return (
     <div className="space-y-4 sm:space-y-6">
-      {/* Platform Summary Banner */}
+      {/* Platform Summary Banner - Theme Responsive */}
       {result.detectedPlatforms && result.detectedPlatforms.length > 0 && (
-        <div className="bg-slate-900 border border-slate-800 rounded-2xl p-4 sm:p-5 flex flex-col sm:flex-row items-center justify-between gap-4 animate-in slide-in-from-top-4 duration-500 shadow-xl shadow-blue-500/5">
+        <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl p-4 sm:p-5 flex flex-col sm:flex-row items-center justify-between gap-4 animate-in slide-in-from-top-4 duration-500 shadow-sm dark:shadow-xl dark:shadow-blue-500/5 transition-colors">
           <div className="flex items-center gap-4">
             <div className="bg-blue-600/10 p-2 rounded-xl border border-blue-500/20">
-              <Cpu className="w-5 h-5 sm:w-6 sm:h-6 text-blue-500" />
+              <Cpu className="w-5 h-5 sm:w-6 sm:h-6 text-blue-600 dark:text-blue-500" />
             </div>
             <div>
-              <h4 className="text-[10px] font-black text-blue-400 uppercase tracking-widest mb-1">Environment OS Intelligence</h4>
+              <h4 className="text-[10px] font-black text-blue-600 dark:text-blue-400 uppercase tracking-widest mb-1">Environment OS Intelligence</h4>
               <div className="flex flex-wrap gap-2">
                 {result.detectedPlatforms.map((p, i) => (
-                  <span key={i} className="px-3 py-1 bg-slate-950 border border-slate-800 rounded-lg text-xs font-bold text-slate-100 flex items-center gap-1.5 transition-all hover:border-blue-500/50">
+                  <span key={i} className="px-3 py-1 bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-lg text-xs font-bold text-slate-800 dark:text-slate-100 flex items-center gap-1.5 transition-all hover:border-blue-500/50">
                     <div className="w-1.5 h-1.5 rounded-full bg-blue-500"></div>
                     {p}
                   </span>
@@ -99,16 +99,16 @@ const AnalysisResults: React.FC<Props> = ({ result }) => {
           </div>
           <div className="relative">
             <div 
-              className="flex items-center gap-2 text-slate-500 group cursor-help"
+              className="flex items-center gap-2 text-slate-400 dark:text-slate-500 group cursor-help"
               onMouseEnter={() => setShowTooltip(true)}
               onMouseLeave={() => setShowTooltip(false)}
             >
-               <span className="text-[9px] font-bold uppercase tracking-widest group-hover:text-blue-400 transition-colors">OS Detection Logic</span>
+               <span className="text-[9px] font-bold uppercase tracking-widest group-hover:text-blue-600 dark:group-hover:text-blue-400 transition-colors">OS Detection Logic</span>
                <HelpCircle className="w-3.5 h-3.5" />
             </div>
             {showTooltip && (
-              <div className="absolute right-0 top-6 w-56 p-4 bg-slate-950 border border-slate-800 rounded-xl shadow-2xl z-50 animate-in fade-in zoom-in-95">
-                <p className="text-[10px] text-slate-300 leading-relaxed italic">
+              <div className="absolute right-0 top-6 w-56 p-4 bg-white dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-xl shadow-2xl z-50 animate-in fade-in zoom-in-95">
+                <p className="text-[10px] text-slate-600 dark:text-slate-300 leading-relaxed italic">
                   Identified by cross-referencing system version strings, boot images, and kernel-specific features found in the provided configurations.
                 </p>
               </div>
@@ -366,11 +366,11 @@ const RemediationGroup: React.FC<{ category: string; data: { commands: string[];
       </div>
 
       <div className="relative group">
-        <div className="bg-slate-950 p-4 sm:p-6 rounded-xl sm:rounded-2xl border border-slate-800 font-mono text-[10px] sm:text-[13px] text-emerald-400/90 whitespace-pre overflow-x-auto custom-scrollbar shadow-inner max-h-[400px]">
+        <div className="bg-slate-50 dark:bg-slate-950 p-4 sm:p-6 rounded-xl sm:rounded-2xl border border-slate-200 dark:border-slate-800 font-mono text-[10px] sm:text-[13px] text-emerald-700 dark:text-emerald-400/90 whitespace-pre overflow-x-auto custom-scrollbar shadow-inner max-h-[400px] transition-colors">
           {allCommands}
         </div>
         <div className="absolute top-4 right-4 opacity-0 group-hover:opacity-100 transition-opacity">
-          <Terminal className="w-4 h-4 text-slate-700" />
+          <Terminal className="w-4 h-4 text-slate-400 dark:text-slate-700" />
         </div>
       </div>
     </div>
@@ -524,7 +524,7 @@ const SuccessCard: React.FC<{ check: SuccessfulCheck }> = ({ check }) => {
             <h5 className="text-[8px] sm:text-[10px] font-black text-slate-500 uppercase tracking-widest">Cisco Nodes</h5>
             <div className="flex flex-wrap gap-1.5 sm:gap-2">
               {check.affectedDevices.map(dev => (
-                <div key={dev} className="flex items-center gap-1.5 bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 px-2 py-1 sm:px-3 sm:py-1.5 rounded-lg">
+                <div key={dev} className="flex items-center gap-1.5 bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 px-2 py-1 sm:px-3 sm:py-1.5 rounded-lg transition-colors">
                   <div className="w-1 h-1 rounded-full bg-emerald-600 dark:bg-emerald-500"></div>
                   <span className="text-[10px] sm:text-xs font-mono text-emerald-700 dark:text-emerald-300/80">{dev}</span>
                 </div>
@@ -553,6 +553,82 @@ const SuccessCard: React.FC<{ check: SuccessfulCheck }> = ({ check }) => {
           </div>
         </div>
       )}
+    </div>
+  );
+};
+
+/**
+ * Visual Representation for Network-Wide Conflicts
+ */
+const ConflictTopology: React.FC<{ devices: string[]; category: string; severity: Severity }> = ({ devices, category, severity }) => {
+  const getSeverityColor = () => {
+    if (severity === Severity.CRITICAL) return 'bg-red-500';
+    if (severity === Severity.WARNING) return 'bg-amber-500';
+    return 'bg-blue-500';
+  };
+
+  const getSeverityBorder = () => {
+    if (severity === Severity.CRITICAL) return 'border-red-500/30 shadow-red-500/20';
+    if (severity === Severity.WARNING) return 'border-amber-500/30 shadow-amber-500/20';
+    return 'border-blue-500/30 shadow-blue-500/20';
+  };
+
+  const color = getSeverityColor();
+  const borderClass = getSeverityBorder();
+
+  return (
+    <div className="bg-slate-50 dark:bg-slate-950/50 border border-slate-200 dark:border-slate-800 rounded-2xl p-6 sm:p-10 relative overflow-hidden flex flex-col items-center justify-center min-h-[240px] shadow-inner transition-colors">
+      {/* Background Grid Pattern */}
+      <div className="absolute inset-0 opacity-[0.03] dark:opacity-[0.03] pointer-events-none" style={{ backgroundImage: 'radial-gradient(circle, currentColor 1px, transparent 1px)', backgroundSize: '24px 24px' }}></div>
+      
+      {/* Central Conflict Hub */}
+      <div className="relative z-10 flex flex-col items-center">
+        <div className={`w-14 h-14 sm:w-16 sm:h-16 rounded-3xl border-2 flex items-center justify-center bg-white dark:bg-slate-950 ${borderClass} shadow-xl animate-pulse transition-colors`}>
+           <Share2 className={`w-6 h-6 sm:w-8 sm:h-8 ${color.replace('bg-', 'text-')}`} />
+        </div>
+        <div className="mt-3 text-center">
+          <span className="text-[8px] sm:text-[10px] font-black text-slate-500 uppercase tracking-[0.2em]">{category} Conflict</span>
+        </div>
+      </div>
+
+      {/* Satellite Nodes (Devices) */}
+      <div className="absolute inset-0 flex items-center justify-center">
+         {devices.map((dev, idx) => {
+           const angle = (idx / devices.length) * 2 * Math.PI;
+           const radius = window.innerWidth < 640 ? 70 : 90;
+           const x = Math.cos(angle) * radius;
+           const y = Math.sin(angle) * radius;
+
+           return (
+             <div 
+               key={dev} 
+               className="absolute flex flex-col items-center group animate-in zoom-in fade-in duration-700"
+               style={{ transform: `translate(${x}px, ${y}px)` }}
+             >
+                {/* Connecting Line */}
+                <div 
+                  className={`absolute w-px h-[90px] origin-bottom ${color} opacity-20`}
+                  style={{ 
+                    transform: `rotate(${angle + Math.PI/2}rad) translateY(-50%)`,
+                    bottom: '100%'
+                  }}
+                ></div>
+
+                <div className="relative">
+                  <div className="w-8 h-8 sm:w-10 sm:h-10 rounded-xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 flex items-center justify-center group-hover:border-blue-500/50 transition-all shadow-lg">
+                    <Server className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-slate-400 group-hover:text-blue-600 dark:group-hover:text-blue-400" />
+                  </div>
+                  {/* Status Indicator */}
+                  <div className={`absolute -top-1 -right-1 w-2.5 h-2.5 rounded-full border-2 border-white dark:border-slate-950 ${color}`}></div>
+                </div>
+                <span className="mt-2 text-[8px] sm:text-[9px] font-mono font-bold text-slate-500 group-hover:text-slate-900 dark:group-hover:text-slate-300 transition-colors bg-white dark:bg-slate-950/80 px-1.5 py-0.5 rounded border border-slate-200 dark:border-slate-800/50 shadow-sm">{dev}</span>
+             </div>
+           );
+         })}
+      </div>
+      
+      {/* Decorative Radar Ring */}
+      <div className={`absolute w-[180px] h-[180px] sm:w-[220px] sm:h-[220px] border border-dashed rounded-full ${color} opacity-[0.05] animate-[spin_20s_linear_infinite]`}></div>
     </div>
   );
 };
@@ -660,6 +736,18 @@ const IssueCard: React.FC<{ issue: AnalysisIssue; isNetworkWide?: boolean }> = (
               </ReactMarkdown>
             </div>
           </div>
+
+          {/* Network-Wide Conceptual Topology */}
+          {isNetworkWide && issue.affectedDevices && issue.affectedDevices.length > 1 && (
+            <div className="space-y-3">
+              <h5 className="text-[8px] sm:text-[10px] font-black text-slate-500 uppercase tracking-widest">Architectural Impact Domain</h5>
+              <ConflictTopology 
+                devices={issue.affectedDevices} 
+                category={issue.category} 
+                severity={issue.severity} 
+              />
+            </div>
+          )}
 
           {issue.affectedDevices && issue.affectedDevices.length > 0 && (
             <div className="space-y-2">

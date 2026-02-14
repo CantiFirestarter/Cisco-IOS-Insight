@@ -1,16 +1,15 @@
 
 import React from 'react';
-import { ShieldCheck, Key, ChevronLeft, Moon, Sun } from 'lucide-react';
+import { ShieldCheck, Moon, Sun, ChevronLeft } from 'lucide-react';
 
 interface HeaderProps {
   onReset: () => void;
-  onSelectKey: () => void;
   hasResult: boolean;
   theme: 'light' | 'dark';
   onToggleTheme: () => void;
 }
 
-const Header: React.FC<HeaderProps> = ({ onReset, onSelectKey, hasResult, theme, onToggleTheme }) => {
+const Header: React.FC<HeaderProps> = ({ onReset, hasResult, theme, onToggleTheme }) => {
   return (
     <header className="border-b border-slate-200 dark:border-slate-800 bg-white/80 dark:bg-slate-900/50 backdrop-blur-md sticky top-0 z-50 transition-colors duration-300">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-14 sm:h-16 flex items-center justify-between">
@@ -36,13 +35,6 @@ const Header: React.FC<HeaderProps> = ({ onReset, onSelectKey, hasResult, theme,
 
           <div className="h-6 w-px bg-slate-200 dark:bg-slate-800"></div>
 
-          <button 
-            onClick={onSelectKey}
-            className="hidden sm:flex items-center gap-2 text-[10px] font-black uppercase tracking-widest text-slate-500 hover:text-blue-600 dark:hover:text-blue-400 transition-colors"
-          >
-            <Key className="w-3 h-3" />
-            Switch API Key
-          </button>
           {hasResult && (
             <button 
               onClick={onReset}
