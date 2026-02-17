@@ -12,6 +12,7 @@ import SafetyNotice from './components/SafetyNotice';
 import FeatureGrid from './components/FeatureGrid';
 import LoadingState from './components/LoadingState';
 import ErrorDisplay from './components/ErrorDisplay';
+import AuthGate from './components/AuthGate';
 import { AlertTriangle } from 'lucide-react';
 
 const App: React.FC = () => {
@@ -21,12 +22,30 @@ const App: React.FC = () => {
     return window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light';
   });
 
+  const [hasApiKey, setHasApiKey] = useState<boolean | null>(null);
+
   const [state, setState] = useState<AppState>({
     files: [],
     isAnalyzing: false,
     result: null,
     error: null,
   });
+
+  useEffect(() => {
+    // Check key status on mount
+    const checkKeyStatus = async () => {
+      // @ts-ignore
+      if (window.aistudio && typeof window.aistudio.hasSelectedApiKey === 'function') {
+        // @ts-ignore
+        const has = await window.aistudio.hasSelectedApiKey();
+        setHasApiKey(has);
+      } else {
+        // Assume key is available via process.env.API_KEY if not in specialized AI Studio environment
+        setHasApiKey(true);
+      }
+    };
+    checkKeyStatus();
+  }, []);
 
   useEffect(() => {
     // Synchronize document class for Tailwind dark mode
@@ -55,8 +74,22 @@ const App: React.FC = () => {
     setState({ files: [], isAnalyzing: false, result: null, error: null });
   };
 
-  // The application must not ask the user for an API key. 
-  // It relies exclusively on the pre-configured environment variable.
+  const handleSelectKey = async () => {
+    // @ts-ignore
+    if (window.aistudio && window.aistudio.openSelectKey) {
+      // @ts-ignore
+      await window.aistudio.openSelectKey();
+      setHasApiKey(true);
+    }
+  };
+
+  // Wait for initial key check
+  if (hasApiKey === null) return null;
+
+  // Show Auth Gate if no key selected in AI Studio
+  if (hasApiKey === false) {
+    return <AuthGate onSelectKey={handleSelectKey} onKeyValidated={() => setHasApiKey(true)} />;
+  }
 
   return (
     <div className="min-h-screen flex flex-col text-slate-900 dark:text-slate-200 transition-colors duration-300">
@@ -86,7 +119,7 @@ const App: React.FC = () => {
               <span className="text-[9px] sm:text-xs font-bold text-amber-700 dark:text-amber-200 uppercase tracking-widest">Verify all CLI commands before application</span>
             </div>
             <Dashboard result={state.result} />
-            <AnalysisResults result={state.result} />
+            <AnalysisResults result={state.result} files={state.files} />
           </div>
         )}
 

@@ -1,11 +1,13 @@
 
 import React, { useState, useMemo } from 'react';
-import { AnalysisResult, Severity, AnalysisIssue, SuccessfulCheck, BestPractice } from '../types';
-import { ShieldAlert, AlertTriangle, Info, CheckCircle2, Copy, ChevronDown, ChevronUp, Network, Server, ShieldCheck, Terminal, Layers, Filter, X, Check, Lightbulb, Eye, EyeOff, Cpu, HelpCircle, Globe, ClipboardList, Share2, Square, CheckSquare } from 'lucide-react';
+import { AnalysisResult, Severity, AnalysisIssue, SuccessfulCheck, BestPractice, ConfigFile } from '../types';
+import { ShieldAlert, AlertTriangle, Info, CheckCircle2, Copy, ChevronDown, ChevronUp, Network, Server, ShieldCheck, Terminal, Layers, Filter, X, Check, Lightbulb, Eye, EyeOff, Cpu, HelpCircle, Globe, ClipboardList, Square, CheckSquare, MessageSquare } from 'lucide-react';
 import ReactMarkdown from 'react-markdown';
+import ConfigChat from './ConfigChat';
 
 interface Props {
   result: AnalysisResult;
+  files: ConfigFile[];
 }
 
 interface RemediationItem {
@@ -14,8 +16,8 @@ interface RemediationItem {
   id: string;
 }
 
-const AnalysisResults: React.FC<Props> = ({ result }) => {
-  const [activeTab, setActiveTab] = useState<'network' | 'device' | 'compliant' | 'bestPractices' | 'remediation'>('network');
+const AnalysisResults: React.FC<Props> = ({ result, files }) => {
+  const [activeTab, setActiveTab] = useState<'network' | 'device' | 'compliant' | 'bestPractices' | 'remediation' | 'chat'>('network');
   const [showTooltip, setShowTooltip] = useState(false);
   
   // Filter states
@@ -176,6 +178,16 @@ const AnalysisResults: React.FC<Props> = ({ result }) => {
           Advisory ({result.bestPractices.length})
           {activeTab === 'bestPractices' && <div className="absolute bottom-0 left-0 w-full h-1 bg-blue-600 dark:bg-blue-500 rounded-t-full"></div>}
         </button>
+        <button
+          onClick={() => handleTabChange('chat')}
+          className={`px-3 py-3 sm:px-6 sm:py-4 font-bold text-[9px] sm:text-xs uppercase tracking-widest transition-all relative flex items-center gap-1.5 sm:gap-2 flex-shrink-0 ${
+            activeTab === 'chat' ? 'text-blue-600 dark:text-blue-500' : 'text-slate-500 hover:text-slate-900 dark:hover:text-slate-300'
+          }`}
+        >
+          <MessageSquare className="w-3 h-3" />
+          Assistant
+          {activeTab === 'chat' && <div className="absolute bottom-0 left-0 w-full h-1 bg-blue-600 dark:bg-blue-500 rounded-t-full"></div>}
+        </button>
       </div>
 
       {/* Filter Bar (Only for specific tabs) */}
@@ -223,6 +235,10 @@ const AnalysisResults: React.FC<Props> = ({ result }) => {
       )}
 
       <div className="grid grid-cols-1 gap-3 sm:gap-4">
+        {activeTab === 'chat' && (
+          <ConfigChat files={files} />
+        )}
+
         {activeTab === 'network' && (
           filteredItems.length > 0 ? (
             filteredItems.map((issue, idx) => (
@@ -617,82 +633,6 @@ const SuccessCard: React.FC<{ check: SuccessfulCheck }> = ({ check }) => {
   );
 };
 
-/**
- * Visual Representation for Network-Wide Conflicts
- */
-const ConflictTopology: React.FC<{ devices: string[]; category: string; severity: Severity }> = ({ devices, category, severity }) => {
-  const getSeverityColor = () => {
-    if (severity === Severity.CRITICAL) return 'bg-red-500';
-    if (severity === Severity.WARNING) return 'bg-amber-500';
-    return 'bg-blue-500';
-  };
-
-  const getSeverityBorder = () => {
-    if (severity === Severity.CRITICAL) return 'border-red-500/30 shadow-red-500/20';
-    if (severity === Severity.WARNING) return 'border-amber-500/30 shadow-amber-500/20';
-    return 'border-blue-500/30 shadow-blue-500/20';
-  };
-
-  const color = getSeverityColor();
-  const borderClass = getSeverityBorder();
-
-  return (
-    <div className="bg-slate-50 dark:bg-slate-950/50 border border-slate-200 dark:border-slate-800 rounded-2xl p-6 sm:p-10 relative overflow-hidden flex flex-col items-center justify-center min-h-[240px] shadow-inner transition-colors">
-      {/* Background Grid Pattern */}
-      <div className="absolute inset-0 opacity-[0.03] dark:opacity-[0.03] pointer-events-none" style={{ backgroundImage: 'radial-gradient(circle, currentColor 1px, transparent 1px)', backgroundSize: '24px 24px' }}></div>
-      
-      {/* Central Conflict Hub */}
-      <div className="relative z-10 flex flex-col items-center">
-        <div className={`w-14 h-14 sm:w-16 sm:h-16 rounded-3xl border-2 flex items-center justify-center bg-white dark:bg-slate-950 ${borderClass} shadow-xl animate-pulse transition-colors`}>
-           <Share2 className={`w-6 h-6 sm:w-8 sm:h-8 ${color.replace('bg-', 'text-')}`} />
-        </div>
-        <div className="mt-3 text-center">
-          <span className="text-[8px] sm:text-[10px] font-black text-slate-500 uppercase tracking-[0.2em]">{category} Conflict</span>
-        </div>
-      </div>
-
-      {/* Satellite Nodes (Devices) */}
-      <div className="absolute inset-0 flex items-center justify-center">
-         {devices.map((dev, idx) => {
-           const angle = (idx / devices.length) * 2 * Math.PI;
-           const radius = window.innerWidth < 640 ? 70 : 90;
-           const x = Math.cos(angle) * radius;
-           const y = Math.sin(angle) * radius;
-
-           return (
-             <div 
-               key={dev} 
-               className="absolute flex flex-col items-center group animate-in zoom-in fade-in duration-700"
-               style={{ transform: `translate(${x}px, ${y}px)` }}
-             >
-                {/* Connecting Line */}
-                <div 
-                  className={`absolute w-px h-[90px] origin-bottom ${color} opacity-20`}
-                  style={{ 
-                    transform: `rotate(${angle + Math.PI/2}rad) translateY(-50%)`,
-                    bottom: '100%'
-                  }}
-                ></div>
-
-                <div className="relative">
-                  <div className="w-8 h-8 sm:w-10 sm:h-10 rounded-xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 flex items-center justify-center group-hover:border-blue-500/50 transition-all shadow-lg">
-                    <Server className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-slate-400 group-hover:text-blue-600 dark:group-hover:text-blue-400" />
-                  </div>
-                  {/* Status Indicator */}
-                  <div className={`absolute -top-1 -right-1 w-2.5 h-2.5 rounded-full border-2 border-white dark:border-slate-950 ${color}`}></div>
-                </div>
-                <span className="mt-2 text-[8px] sm:text-[9px] font-mono font-bold text-slate-500 group-hover:text-slate-900 dark:group-hover:text-slate-300 transition-colors bg-white dark:bg-slate-950/80 px-1.5 py-0.5 rounded border border-slate-200 dark:border-slate-800/50 shadow-sm">{dev}</span>
-             </div>
-           );
-         })}
-      </div>
-      
-      {/* Decorative Radar Ring */}
-      <div className={`absolute w-[180px] h-[180px] sm:w-[220px] sm:h-[220px] border border-dashed rounded-full ${color} opacity-[0.05] animate-[spin_20s_linear_infinite]`}></div>
-    </div>
-  );
-};
-
 const IssueCard: React.FC<{ issue: AnalysisIssue; isNetworkWide?: boolean }> = ({ issue, isNetworkWide }) => {
   const [isOpen, setIsOpen] = useState(isNetworkWide || false);
   const [copiedRemediation, setCopiedRemediation] = useState(false);
@@ -796,18 +736,6 @@ const IssueCard: React.FC<{ issue: AnalysisIssue; isNetworkWide?: boolean }> = (
               </ReactMarkdown>
             </div>
           </div>
-
-          {/* Network-Wide Conceptual Topology */}
-          {isNetworkWide && issue.affectedDevices && issue.affectedDevices.length > 1 && (
-            <div className="space-y-3">
-              <h5 className="text-[8px] sm:text-[10px] font-black text-slate-500 uppercase tracking-widest">Architectural Impact Domain</h5>
-              <ConflictTopology 
-                devices={issue.affectedDevices} 
-                category={issue.category} 
-                severity={issue.severity} 
-              />
-            </div>
-          )}
 
           {issue.affectedDevices && issue.affectedDevices.length > 0 && (
             <div className="space-y-2">

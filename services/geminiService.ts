@@ -1,6 +1,6 @@
 
-import { GoogleGenAI, Type } from "@google/genai";
-import { AnalysisResult, Severity, ConfigFile } from "../types";
+import { GoogleGenAI, Type, Chat } from "@google/genai";
+import { AnalysisResult, Severity, ConfigFile, ChatMessage } from "../types";
 
 /**
  * Audit result schema for advanced Cisco network analysis.
@@ -82,32 +82,11 @@ const ANALYSIS_SCHEMA = {
 };
 
 /**
- * Validates the API connection.
- */
-export async function validateApiKey(apiKey: string): Promise<{ success: boolean; message: string }> {
-  try {
-    const ai = new GoogleGenAI({ apiKey });
-    await ai.models.generateContent({
-      model: "gemini-3-flash-preview",
-      contents: "Hello",
-      config: { maxOutputTokens: 1 }
-    });
-    return { success: true, message: "Connection verified." };
-  } catch (error: any) {
-    console.error("Key validation error:", error);
-    return { 
-      success: false, 
-      message: error.message || "Could not verify connection." 
-    };
-  }
-}
-
-/**
  * Analyzes Cisco IOS configurations using Gemini 3 Pro reasoning.
  */
 export async function analyzeCiscoConfigs(files: ConfigFile[]): Promise<AnalysisResult> {
   try {
-    // Correctly initialize GoogleGenAI with a named parameter using exclusively the environment variable.
+    // Create instance right before call to ensure latest API key is used
     const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
     const combinedConfigs = files.map(f => `DEVICE_NAME: ${f.name}\nCONFIG_START\n${f.content}\nCONFIG_END`).join('\n\n');
 
@@ -115,44 +94,82 @@ export async function analyzeCiscoConfigs(files: ConfigFile[]): Promise<Analysis
     
     COMPLIANCE GOAL: Consistency is the primary indicator of a healthy network.
     
-    AUDIT FOCUS:
-    1. BASELINE DETECTION: Identify management plane commonalities (NTP servers, Syslog, DNS, SNMP communities). If 80% of devices have a setting but 20% don't, flag the 20% as 'Inconsistent with Baseline'.
-    2. PROTOCOL PARITY: Ensure OSPF/BGP/EIGRP hello/dead timers match across all potential neighbors. Flag MTU mismatches on interfaces with similar descriptions or subnets.
-    3. STANDARDIZED REMEDIATION: If multiple devices lack the same security command (e.g., 'no ip http server'), provide a SINGLE standardized CLI remediation block that applies to all of them.
-    4. OS SENSITIVITY: Ensure 'iosVersions' correctly distinguishes between 'IOS XE' and 'IOS XR' syntax.
-    
     INPUT CONFIGURATIONS:
     ${combinedConfigs}`;
 
-    // Generate content using gemini-3-pro-preview with thinking budget for architectural analysis.
     const response = await ai.models.generateContent({
       model: "gemini-3-pro-preview",
       contents: prompt,
       config: {
         systemInstruction: `You are a Senior CCIE Network Architect. 
-        - RULE 1: CONSISTENCY ABOVE ALL. A network with consistently mediocre settings is often safer than one with fragmented "best" settings. Flag all configuration drift.
-        - RULE 2: TEMPLATE-DRIVEN. When generating remediation, act as if you are updating a Golden Template. Commands must be uniform across the entire device set.
-        - RULE 3: NEIGHBORHOOD AWARENESS. Look for IP overlaps or subnet mismatches between devices.
-        - RULE 4: VALIDATION. Only use standard Cisco CLI. No shortcuts.
-        - RULE 5: OS DETECTION. Look for specific markers:
-          * IOS XR: Look for 'rp/0/RP0/CPU0', 'commit' model, or 'interface TenGigE0/0/0/0'.
-          * IOS XE: Look for 'license boot level', 'platform hardware', or 'GigabitEthernet1/0/1' (Stacking).
-          * Classic IOS: Look for 'FastEthernet' or 'boot system flash'.
-        - RULE 6: OUTPUT. Strictly JSON following the provided schema.`,
+        - RULE 1: CONSISTENCY ABOVE ALL.
+        - RULE 2: TEMPLATE-DRIVEN remediation.
+        - RULE 3: NEIGHBORHOOD AWARENESS.
+        - RULE 4: Standard Cisco CLI only.
+        - RULE 5: Detailed OS Markers (IOS XR, XE, Classic).
+        - RULE 6: JSON output only following the provided schema.`,
         responseMimeType: "application/json",
         responseSchema: ANALYSIS_SCHEMA,
-        // The thinkingConfig is available for Gemini 3 series models.
         thinkingConfig: { thinkingBudget: 32768 }
       },
     });
 
-    // Extract the text output using the .text property (not a method).
     const resultText = response.text;
     if (!resultText) throw new Error("Empty response from AI");
     
     return JSON.parse(resultText) as AnalysisResult;
   } catch (error: any) {
+    // Handle key selection requirement if billing/entity is missing
+    if (error.message?.includes("Requested entity was not found.")) {
+      // @ts-ignore
+      if (window.aistudio && window.aistudio.openSelectKey) {
+        // @ts-ignore
+        window.aistudio.openSelectKey();
+      }
+    }
     console.error("Gemini Cisco Audit Error:", error);
     throw new Error(error.message || "Failed to analyze Cisco configurations.");
+  }
+}
+
+/**
+ * Handles interactive chat about the configurations.
+ */
+export async function askConfigQuestion(files: ConfigFile[], history: ChatMessage[], question: string): Promise<string> {
+  try {
+    // Create instance right before call
+    const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
+    const combinedConfigs = files.map(f => `DEVICE: ${f.name}\n${f.content}`).join('\n\n');
+    
+    const chat = ai.chats.create({
+      model: "gemini-3-flash-preview",
+      config: {
+        systemInstruction: `You are a Senior CCIE Network Assistant. 
+        You have the following network configurations as context:
+        ---
+        ${combinedConfigs}
+        ---
+        Answer questions based strictly on these configurations. 
+        If asked for CLI, provide valid Cisco IOS/XE/XR commands. 
+        If asked about security, mention specific lines of the config. 
+        Be professional, technical, and concise.`,
+      }
+    });
+
+    const historyContext = history.map(h => `${h.role === 'user' ? 'User' : 'Assistant'}: ${h.text}`).join('\n');
+    const finalPrompt = `Current Conversation:\n${historyContext}\n\nUser Question: ${question}`;
+
+    const response = await chat.sendMessage({ message: finalPrompt });
+    return response.text || "I'm sorry, I couldn't process that question.";
+  } catch (error: any) {
+    if (error.message?.includes("Requested entity was not found.")) {
+      // @ts-ignore
+      if (window.aistudio && window.aistudio.openSelectKey) {
+        // @ts-ignore
+        window.aistudio.openSelectKey();
+      }
+    }
+    console.error("Chat error:", error);
+    throw new Error(error.message || "Failed to get an answer.");
   }
 }

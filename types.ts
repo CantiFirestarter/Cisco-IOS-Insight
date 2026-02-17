@@ -50,6 +50,11 @@ export interface ConfigFile {
   id: string;
 }
 
+export interface ChatMessage {
+  role: 'user' | 'model';
+  text: string;
+}
+
 export interface AppState {
   files: ConfigFile[];
   isAnalyzing: boolean;
