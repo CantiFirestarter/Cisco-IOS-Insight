@@ -1,6 +1,6 @@
 
 import React, { useState, useEffect } from 'react';
-import { ShieldCheck, Moon, Sun, ChevronLeft, KeyRound } from 'lucide-react';
+import { ShieldCheck, Moon, Sun, ChevronLeft, KeyRound, Lock } from 'lucide-react';
 
 interface HeaderProps {
   onReset: () => void;
@@ -21,6 +21,7 @@ const Header: React.FC<HeaderProps> = ({ onReset, hasResult, theme, onToggleThem
   }, []);
 
   const handleResetKey = async () => {
+    if (!canResetKey) return;
     // @ts-ignore
     if (window.aistudio && window.aistudio.openSelectKey) {
       // @ts-ignore
@@ -43,17 +44,34 @@ const Header: React.FC<HeaderProps> = ({ onReset, hasResult, theme, onToggleThem
         </div>
         
         <div className="flex items-center gap-2 sm:gap-4">
-          {canResetKey && (
+          <div className="flex items-center">
             <button
               onClick={handleResetKey}
-              className="flex items-center gap-2 px-3 py-2 rounded-xl bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400 hover:text-blue-600 dark:hover:text-blue-400 transition-all border border-slate-200 dark:border-slate-700 group"
-              title="Change Personal API Key"
-              aria-label="Change API Key"
+              disabled={!canResetKey}
+              className={`flex items-center gap-2 px-3 py-2 rounded-xl transition-all border group relative ${
+                canResetKey 
+                  ? 'bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400 hover:text-blue-600 dark:hover:text-blue-400 border-slate-200 dark:border-slate-700' 
+                  : 'bg-emerald-500/5 dark:bg-emerald-500/10 text-emerald-600 dark:text-emerald-500 border-emerald-500/20 cursor-default'
+              }`}
+              title={canResetKey ? "Change Personal API Key" : "Secure System Connection Active"}
+              aria-label={canResetKey ? "Change API Key" : "Connection Secure"}
             >
-              <KeyRound className="w-3.5 h-3.5 sm:w-4 h-4 group-hover:rotate-12 transition-transform" />
-              <span className="hidden md:block text-[10px] font-black uppercase tracking-widest">Switch Key</span>
+              <div className="relative">
+                <KeyRound className={`w-3.5 h-3.5 sm:w-4 h-4 transition-transform ${canResetKey ? 'group-hover:rotate-12' : ''}`} />
+                {!canResetKey && (
+                  <div className="absolute -top-1 -right-1 w-1.5 h-1.5 bg-emerald-500 rounded-full animate-pulse border border-white dark:border-slate-900"></div>
+                )}
+              </div>
+              
+              <span className="hidden md:block text-[10px] font-black uppercase tracking-widest">
+                {canResetKey ? 'Switch Key' : 'Secure'}
+              </span>
+
+              {!canResetKey && (
+                <Lock className="w-2.5 h-2.5 opacity-50 hidden sm:block" />
+              )}
             </button>
-          )}
+          </div>
 
           <button
             onClick={onToggleTheme}
