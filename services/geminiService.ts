@@ -18,7 +18,7 @@ const ANALYSIS_SCHEMA = {
       items: {
         type: Type.OBJECT,
         properties: {
-          severity: { type: Type.STRING, description: "One of: CRITICAL, WARNING, INFO" },
+          severity: { type: Type.STRING, enum: Object.values(Severity) },
           category: { type: Type.STRING, description: "e.g., Security, Performance, Cisco Best Practice" },
           title: { type: Type.STRING },
           description: { type: Type.STRING, description: "Detailed impact analysis. May use Markdown." },
@@ -36,7 +36,7 @@ const ANALYSIS_SCHEMA = {
       items: {
         type: Type.OBJECT,
         properties: {
-          severity: { type: Type.STRING, description: "One of: CRITICAL, WARNING, INFO" },
+          severity: { type: Type.STRING, enum: Object.values(Severity) },
           category: { type: Type.STRING },
           title: { type: Type.STRING },
           description: { type: Type.STRING, description: "Consistency conflict explanation. Explain which device deviates from the detected baseline." },
@@ -95,26 +95,6 @@ const ANALYSIS_SCHEMA = {
   },
   required: ["summary", "deviceCount", "detectedDevices", "detectedPlatforms", "issues", "networkWideIssues", "successfulChecks", "bestPractices", "verificationSteps", "securityScore"]
 };
-
-/**
- * Validates the provided API key by making a minimal request.
- */
-export async function validateApiKey(apiKey: string): Promise<{ success: boolean; message: string }> {
-  try {
-    const ai = new GoogleGenAI({ apiKey });
-    const response = await ai.models.generateContent({
-      model: 'gemini-3-flash-preview',
-      contents: 'Verify API key connectivity. Respond with "OK".',
-    });
-    if (response.text) {
-      return { success: true, message: "Connection established." };
-    }
-    return { success: false, message: "Empty response from API." };
-  } catch (error: any) {
-    console.error("API Key Validation Error:", error);
-    return { success: false, message: error.message || "Invalid API Key." };
-  }
-}
 
 /**
  * Analyzes Cisco IOS configurations using Gemini 3 Pro reasoning.
