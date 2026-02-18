@@ -69,4 +69,6 @@ export interface AppState {
   isAnalyzing: boolean;
   result: AnalysisResult | null;
   error: string | null;
+  chatHistory: ChatMessage[];
+  chatDraft: string;
 }

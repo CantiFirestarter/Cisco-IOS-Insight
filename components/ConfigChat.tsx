@@ -7,6 +7,10 @@ import ReactMarkdown from 'react-markdown';
 
 interface Props {
   files: ConfigFile[];
+  messages: ChatMessage[];
+  input: string;
+  onUpdateMessages: (messages: ChatMessage[]) => void;
+  onUpdateInput: (input: string) => void;
 }
 
 const SUGGESTED_QUESTIONS = [
@@ -18,9 +22,13 @@ const SUGGESTED_QUESTIONS = [
   "Are there any SNMPv2 communities?"
 ];
 
-const ConfigChat: React.FC<Props> = ({ files }) => {
-  const [messages, setMessages] = useState<ChatMessage[]>([]);
-  const [input, setInput] = useState('');
+const ConfigChat: React.FC<Props> = ({ 
+  files, 
+  messages, 
+  input, 
+  onUpdateMessages, 
+  onUpdateInput 
+}) => {
   const [isLoading, setIsLoading] = useState(false);
   const scrollRef = useRef<HTMLDivElement>(null);
 
@@ -30,28 +38,29 @@ const ConfigChat: React.FC<Props> = ({ files }) => {
     }
   }, [messages, isLoading]);
 
-  const handleSend = async (text: string) => {
+  const handleSend = async (text?: string) => {
     const query = text || input;
     if (!query.trim() || isLoading) return;
 
     const userMessage: ChatMessage = { role: 'user', text: query };
-    setMessages(prev => [...prev, userMessage]);
-    setInput('');
+    const newMessages = [...messages, userMessage];
+    onUpdateMessages(newMessages);
+    onUpdateInput('');
     setIsLoading(true);
 
     try {
       const answer = await askConfigQuestion(files, messages, query);
       const assistantMessage: ChatMessage = { role: 'model', text: answer };
-      setMessages(prev => [...prev, assistantMessage]);
+      onUpdateMessages([...newMessages, assistantMessage]);
     } catch (err: any) {
-      setMessages(prev => [...prev, { role: 'model', text: `**Error:** ${err.message}` }]);
+      onUpdateMessages([...newMessages, { role: 'model', text: `**Error:** ${err.message}` }]);
     } finally {
       setIsLoading(false);
     }
   };
 
   return (
-    <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-3xl shadow-xl overflow-hidden flex flex-col h-[600px] animate-in slide-in-from-bottom-4 duration-500">
+    <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-3xl shadow-xl overflow-hidden flex flex-col h-[600px] animate-in slide-in-from-bottom-4 duration-500 transition-colors">
       {/* Header */}
       <div className="bg-slate-50 dark:bg-slate-950 px-6 py-4 border-b border-slate-200 dark:border-slate-800 flex items-center justify-between">
         <div className="flex items-center gap-3">
@@ -111,7 +120,7 @@ const ConfigChat: React.FC<Props> = ({ files }) => {
             <div className={`max-w-[85%] rounded-2xl p-4 sm:p-5 text-sm leading-relaxed ${
               m.role === 'user' 
                 ? 'bg-blue-600 text-white rounded-tr-none shadow-lg shadow-blue-500/10' 
-                : 'bg-white dark:bg-slate-950 border border-slate-200 dark:border-slate-800 text-slate-800 dark:text-slate-200 rounded-tl-none shadow-sm'
+                : 'bg-white dark:bg-slate-950 border border-slate-200 dark:border-slate-800 text-slate-800 dark:text-slate-200 rounded-tl-none shadow-sm transition-colors'
             }`}>
               <div className="prose dark:prose-invert prose-sm max-w-none prose-p:leading-relaxed prose-pre:bg-slate-900 prose-pre:text-blue-400 prose-code:text-blue-500">
                 <ReactMarkdown>{m.text}</ReactMarkdown>
@@ -138,16 +147,16 @@ const ConfigChat: React.FC<Props> = ({ files }) => {
       </div>
 
       {/* Input */}
-      <div className="p-4 sm:p-6 bg-slate-50 dark:bg-slate-950 border-t border-slate-200 dark:border-slate-800">
+      <div className="p-4 sm:p-6 bg-slate-50 dark:bg-slate-950 border-t border-slate-200 dark:border-slate-800 transition-colors">
         <form 
-          onSubmit={(e) => { e.preventDefault(); handleSend(input); }}
+          onSubmit={(e) => { e.preventDefault(); handleSend(); }}
           className="relative flex items-center gap-2"
         >
           <div className="relative flex-1 group">
             <input 
               type="text"
               value={input}
-              onChange={(e) => setInput(e.target.value)}
+              onChange={(e) => onUpdateInput(e.target.value)}
               placeholder="Ask a question about your configs..."
               disabled={isLoading}
               className="w-full bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl py-4 pl-12 pr-4 text-sm text-slate-900 dark:text-white outline-none focus:ring-2 focus:ring-blue-500/50 transition-all placeholder:text-slate-400 dark:placeholder:text-slate-600"
@@ -171,7 +180,7 @@ const ConfigChat: React.FC<Props> = ({ files }) => {
            </div>
            {messages.length > 0 && (
              <button 
-              onClick={() => setMessages([])}
+              onClick={() => onUpdateMessages([])}
               className="text-[9px] font-black text-red-600 hover:text-red-500 uppercase tracking-widest"
              >
                Clear History

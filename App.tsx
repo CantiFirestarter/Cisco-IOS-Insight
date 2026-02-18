@@ -1,7 +1,7 @@
 
 import React, { useState, useEffect } from 'react';
 import { analyzeCiscoConfigs } from './services/geminiService';
-import { AppState, ConfigFile } from './types';
+import { AppState, ConfigFile, ChatMessage } from './types';
 import Dashboard from './components/Dashboard';
 import ConfigUploader from './components/ConfigUploader';
 import AnalysisResults from './components/AnalysisResults';
@@ -29,6 +29,8 @@ const App: React.FC = () => {
     isAnalyzing: false,
     result: null,
     error: null,
+    chatHistory: [],
+    chatDraft: '',
   });
 
   useEffect(() => {
@@ -71,7 +73,22 @@ const App: React.FC = () => {
   };
 
   const handleReset = () => {
-    setState({ files: [], isAnalyzing: false, result: null, error: null });
+    setState({ 
+      files: [], 
+      isAnalyzing: false, 
+      result: null, 
+      error: null,
+      chatHistory: [],
+      chatDraft: ''
+    });
+  };
+
+  const handleUpdateChatHistory = (messages: ChatMessage[]) => {
+    setState(prev => ({ ...prev, chatHistory: messages }));
+  };
+
+  const handleUpdateChatDraft = (draft: string) => {
+    setState(prev => ({ ...prev, chatDraft: draft }));
   };
 
   const handleSelectKey = async () => {
@@ -119,7 +136,14 @@ const App: React.FC = () => {
               <span className="text-[9px] sm:text-xs font-bold text-amber-700 dark:text-amber-200 uppercase tracking-widest">Verify all CLI commands before application</span>
             </div>
             <Dashboard result={state.result} />
-            <AnalysisResults result={state.result} files={state.files} />
+            <AnalysisResults 
+              result={state.result} 
+              files={state.files} 
+              chatHistory={state.chatHistory}
+              chatDraft={state.chatDraft}
+              onUpdateChatHistory={handleUpdateChatHistory}
+              onUpdateChatDraft={handleUpdateChatDraft}
+            />
           </div>
         )}
 
