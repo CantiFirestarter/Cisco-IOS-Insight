@@ -1,6 +1,6 @@
 
 import React, { useState, useEffect } from 'react';
-import { ShieldCheck, Lock, Zap, ExternalLink, Info } from 'lucide-react';
+import { ShieldCheck, Lock, Zap, ExternalLink, Info, Key } from 'lucide-react';
 
 interface AuthGateProps {
   onSelectKey: () => void;
@@ -25,63 +25,91 @@ const AuthGate: React.FC<AuthGateProps> = ({ onSelectKey, onKeyValidated }) => {
   };
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-slate-950 text-slate-200 p-4 font-sans selection:bg-blue-500/30">
-      <div className="max-w-lg w-full bg-slate-900 border border-slate-800 rounded-[2.5rem] shadow-2xl overflow-hidden animate-in fade-in zoom-in-95 duration-700">
+    <div className="min-h-screen flex items-center justify-center bg-slate-950 text-slate-200 p-4 font-sans selection:bg-blue-500/30 overflow-hidden relative">
+      {/* Decorative background elements */}
+      <div className="absolute top-[-10%] left-[-10%] w-[40%] h-[40%] bg-blue-600/10 blur-[120px] rounded-full"></div>
+      <div className="absolute bottom-[-10%] right-[-10%] w-[40%] h-[40%] bg-indigo-600/10 blur-[120px] rounded-full"></div>
+
+      <div className="max-w-md w-full bg-slate-900/80 backdrop-blur-xl border border-slate-800 rounded-[3rem] shadow-[0_0_50px_rgba(0,0,0,0.5)] overflow-hidden animate-in fade-in zoom-in-95 duration-700 relative z-10">
         
         {/* Top Branding Section */}
-        <div className="pt-10 px-8 sm:pt-12 sm:px-12 text-center space-y-4">
+        <div className="pt-12 px-8 sm:pt-14 sm:px-12 text-center space-y-6">
           <div className="flex justify-center">
-            <div className="bg-blue-600/10 p-4 rounded-3xl border border-blue-500/20 shadow-inner">
-              <ShieldCheck className="w-10 h-10 text-blue-500" />
+            <div className="relative group">
+              <div className="absolute -inset-1 bg-gradient-to-r from-blue-600 to-indigo-600 rounded-[2rem] blur opacity-25 group-hover:opacity-50 transition duration-1000 group-hover:duration-200"></div>
+              <div className="relative bg-slate-900 p-5 rounded-[2rem] border border-slate-800 shadow-inner flex items-center justify-center">
+                <ShieldCheck className="w-12 h-12 text-blue-500" />
+              </div>
             </div>
           </div>
-          <div className="space-y-2">
-            <h1 className="text-3xl font-black text-white tracking-tight">Cisco IOS Insight</h1>
-            <p className="text-slate-400 text-sm leading-relaxed max-w-sm mx-auto">
-              Advanced Cisco architectural auditing powered by Gemini 3 Pro.
-              This tool requires a valid API key with billing enabled.
+          <div className="space-y-3">
+            <h1 className="text-3xl font-black text-white tracking-tighter sm:text-4xl">
+              Cisco IOS <span className="text-blue-500">Insight</span>
+            </h1>
+            <p className="text-slate-400 text-sm leading-relaxed max-w-[280px] mx-auto font-medium opacity-80">
+              CCIE-Grade Network Auditing & Inter-Device Conflict Detection.
             </p>
           </div>
         </div>
 
         {/* Action Section */}
-        <div className="px-8 py-8 sm:px-12 sm:pb-12 space-y-6">
+        <div className="px-8 py-10 sm:px-12 sm:pb-14 space-y-8">
           <div className="space-y-4">
             <button 
               onClick={handleStudioKey}
-              className="w-full py-4 rounded-2xl font-black text-sm uppercase tracking-widest shadow-xl transition-all flex items-center justify-center gap-3 bg-blue-600 hover:bg-blue-500 text-white shadow-blue-500/20 active:scale-[0.98]"
+              className="w-full py-4.5 rounded-2xl font-black text-xs uppercase tracking-[0.2em] shadow-xl transition-all flex items-center justify-center gap-3 bg-blue-600 hover:bg-blue-500 text-white shadow-blue-500/20 active:scale-[0.98] group"
             >
-              <Zap className="w-4 h-4 fill-white" />
-              Connect Google AI Studio
+              <Zap className="w-4 h-4 fill-white animate-pulse group-hover:scale-110 transition-transform" />
+              Initialize Engine
             </button>
             
-            <p className="text-[10px] text-slate-500 text-center uppercase tracking-widest font-black flex items-center justify-center gap-2">
-              <Info className="w-3 h-3" />
-              Mandatory Project Key Selection
-            </p>
+            <div className="flex flex-col items-center gap-4 pt-2">
+              <div className="flex items-center gap-2 text-[10px] text-slate-500 font-black uppercase tracking-widest">
+                <Key className="w-3 h-3" />
+                Secure API Handshake Required
+              </div>
+              
+              <div className="h-px w-12 bg-slate-800"></div>
+
+              <a 
+                href="https://aistudio.google.com/app/apikey" 
+                target="_blank" 
+                rel="noopener noreferrer"
+                className="group flex items-center gap-1.5 text-[10px] text-blue-400 hover:text-blue-300 font-black uppercase tracking-widest transition-colors"
+              >
+                Get Free API Key 
+                <ExternalLink className="w-3 h-3 group-hover:translate-x-0.5 group-hover:-translate-y-0.5 transition-transform" />
+              </a>
+            </div>
           </div>
 
-          {/* Action Links & Footer Info */}
+          {/* Reasoning & Footer */}
           <div className="space-y-6">
-            <div className="flex items-center justify-center">
+            <div className="pt-8 border-t border-slate-800/50 flex flex-col items-center gap-4 text-center">
+              <div className="flex items-center justify-center gap-2 text-slate-500">
+                <Lock className="w-3 h-3" />
+                <span className="text-[9px] font-black uppercase tracking-[0.1em]">Encrypted Session</span>
+              </div>
+              <p className="text-[10px] text-slate-500/80 leading-relaxed italic max-w-xs">
+                Your credentials never leave Google's secure environment. Analysis is performed using ephemeral in-memory processing.
+              </p>
+              
               <a 
                 href="https://ai.google.dev/gemini-api/docs/billing" 
                 target="_blank" 
                 rel="noopener noreferrer"
-                className="inline-flex items-center gap-1.5 text-[10px] text-blue-400 hover:text-blue-300 font-black uppercase tracking-widest transition-colors"
+                className="text-[9px] text-slate-600 hover:text-slate-400 font-bold underline underline-offset-4 transition-colors"
               >
-                Learn about billing <ExternalLink className="w-3 h-3" />
+                Project Billing Requirements
               </a>
-            </div>
-
-            <div className="pt-6 border-t border-slate-800 flex items-start gap-3">
-              <Lock className="w-4 h-4 text-slate-600 shrink-0 mt-0.5" />
-              <p className="text-[10px] text-slate-500 leading-relaxed italic text-center w-full">
-                Your keys are handled securely by Google AI Studio. Cisco IOS Insight never sees or stores your raw credentials.
-              </p>
             </div>
           </div>
         </div>
+      </div>
+      
+      {/* Version stamp */}
+      <div className="absolute bottom-8 text-slate-800 text-[10px] font-black tracking-[0.5em] uppercase pointer-events-none">
+        Insight Engine v1.0.0
       </div>
     </div>
   );
