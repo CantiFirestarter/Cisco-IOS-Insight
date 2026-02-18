@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { ShieldCheck, Moon, Sun, ChevronLeft, KeyRound } from 'lucide-react';
 
@@ -13,14 +12,27 @@ const Header: React.FC<HeaderProps> = ({ onReset, hasResult, theme, onToggleThem
   const [canResetKey, setCanResetKey] = useState(false);
 
   useEffect(() => {
-    // Check if the platform's key selection tool is available
+    // Check if either platform tool OR manual key is available
     // @ts-ignore
-    if (window.aistudio && typeof window.aistudio.openSelectKey === 'function') {
+    const isAiStudio = window.aistudio && typeof window.aistudio.openSelectKey === 'function';
+    const hasLocalKey = localStorage.getItem('cisco_insight_api_key');
+    
+    if (isAiStudio || hasLocalKey) {
       setCanResetKey(true);
     }
   }, []);
 
   const handleResetKey = async () => {
+    // Check manual key first
+    if (localStorage.getItem('cisco_insight_api_key')) {
+      if (confirm('Clear manually entered API key? You will need to enter it again to perform audits.')) {
+        localStorage.removeItem('cisco_insight_api_key');
+        window.location.reload();
+      }
+      return;
+    }
+
+    // Fallback to platform tool
     // @ts-ignore
     if (window.aistudio && window.aistudio.openSelectKey) {
       // @ts-ignore

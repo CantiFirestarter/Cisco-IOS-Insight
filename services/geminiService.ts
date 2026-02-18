@@ -2,6 +2,11 @@ import { GoogleGenAI, Type, Chat } from "@google/genai";
 import { AnalysisResult, Severity, ConfigFile, ChatMessage } from "../types";
 
 /**
+ * Helper to get the active API key, prioritizing manual user entry over environment variables.
+ */
+const getActiveKey = () => localStorage.getItem('cisco_insight_api_key') || process.env.API_KEY || '';
+
+/**
  * Audit result schema for advanced Cisco network analysis.
  */
 const ANALYSIS_SCHEMA = {
@@ -117,7 +122,7 @@ export async function validateApiKey(key: string): Promise<{ success: boolean; m
  */
 export async function analyzeCiscoConfigs(files: ConfigFile[]): Promise<AnalysisResult> {
   try {
-    const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
+    const ai = new GoogleGenAI({ apiKey: getActiveKey() });
     const combinedConfigs = files.map(f => `DEVICE_NAME: ${f.name}\nCONFIG_START\n${f.content}\nCONFIG_END`).join('\n\n');
 
     const prompt = `Perform a comprehensive Cisco Network Audit. 
@@ -175,7 +180,7 @@ export async function analyzeCiscoConfigs(files: ConfigFile[]): Promise<Analysis
  */
 export async function askConfigQuestion(files: ConfigFile[], history: ChatMessage[], question: string): Promise<string> {
   try {
-    const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
+    const ai = new GoogleGenAI({ apiKey: getActiveKey() });
     const combinedConfigs = files.map(f => `DEVICE: ${f.name}\n${f.content}`).join('\n\n');
     
     const chat = ai.chats.create({

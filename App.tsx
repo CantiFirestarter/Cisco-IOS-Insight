@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { analyzeCiscoConfigs } from './services/geminiService';
 import { AppState, ConfigFile, ChatMessage } from './types';
@@ -36,14 +35,24 @@ const App: React.FC = () => {
   useEffect(() => {
     // Check key status on mount
     const checkKeyStatus = async () => {
+      // 1. Check AI Studio specialized environment
       // @ts-ignore
       if (window.aistudio && typeof window.aistudio.hasSelectedApiKey === 'function') {
         // @ts-ignore
         const has = await window.aistudio.hasSelectedApiKey();
         setHasApiKey(has);
       } else {
-        // Assume key is available via process.env.API_KEY if not in specialized AI Studio environment
-        setHasApiKey(true);
+        // 2. Check Local Storage for manually entered key
+        const localKey = localStorage.getItem('cisco_insight_api_key');
+        if (localKey) {
+          setHasApiKey(true);
+        } else if (process.env.API_KEY) {
+          // 3. Check for injected environment variable (Standard Deployment)
+          setHasApiKey(true);
+        } else {
+          // 4. No key found, force AuthGate
+          setHasApiKey(false);
+        }
       }
     };
     checkKeyStatus();
@@ -103,7 +112,7 @@ const App: React.FC = () => {
   // Wait for initial key check
   if (hasApiKey === null) return null;
 
-  // Show Auth Gate if no key selected in AI Studio
+  // Show Auth Gate if no key selected/present
   if (hasApiKey === false) {
     return <AuthGate onSelectKey={handleSelectKey} onKeyValidated={() => setHasApiKey(true)} />;
   }

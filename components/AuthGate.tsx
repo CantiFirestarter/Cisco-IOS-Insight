@@ -30,7 +30,7 @@ const AuthGate: React.FC<AuthGateProps> = ({ onSelectKey, onKeyValidated }) => {
     if (result.success) {
       setValidationStatus('success');
       setTimeout(() => {
-        localStorage.setItem('cisco_expert_api_key', apiKeyInput.trim());
+        localStorage.setItem('cisco_insight_api_key', apiKeyInput.trim());
         onKeyValidated();
       }, 800);
     } else {
