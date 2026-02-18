@@ -1,6 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { ShieldCheck, Lock, Zap, ExternalLink, KeyRound, Check, Info, AlertCircle } from 'lucide-react';
-import { validateApiKey } from '../services/geminiService';
+import { ShieldCheck, Lock, Zap, ExternalLink, KeyRound, Check } from 'lucide-react';
 
 interface AuthGateProps {
   onSelectKey: () => void;
@@ -10,8 +9,6 @@ interface AuthGateProps {
 const AuthGate: React.FC<AuthGateProps> = ({ onSelectKey, onKeyValidated }) => {
   const [isAiStudio, setIsAiStudio] = useState(false);
   const [apiKeyInput, setApiKeyInput] = useState('');
-  const [validationStatus, setValidationStatus] = useState<'idle' | 'checking' | 'success' | 'error'>('idle');
-  const [validationError, setValidationError] = useState('');
 
   useEffect(() => {
     // Check if the secure platform selection tool is available
@@ -21,22 +18,12 @@ const AuthGate: React.FC<AuthGateProps> = ({ onSelectKey, onKeyValidated }) => {
     }
   }, []);
 
-  const handleVerifyAndSave = async () => {
-    if (!apiKeyInput.trim()) return;
-    setValidationStatus('checking');
-    setValidationError('');
+  const handleSaveAndProceed = () => {
+    const trimmedKey = apiKeyInput.trim();
+    if (!trimmedKey) return;
     
-    const result = await validateApiKey(apiKeyInput.trim());
-    if (result.success) {
-      setValidationStatus('success');
-      setTimeout(() => {
-        localStorage.setItem('cisco_insight_api_key', apiKeyInput.trim());
-        onKeyValidated();
-      }, 800);
-    } else {
-      setValidationStatus('error');
-      setValidationError(result.message);
-    }
+    localStorage.setItem('cisco_insight_api_key', trimmedKey);
+    onKeyValidated();
   };
 
   const handleStudioKey = async () => {
@@ -68,55 +55,25 @@ const AuthGate: React.FC<AuthGateProps> = ({ onSelectKey, onKeyValidated }) => {
           <div className="space-y-4">
             <div className="relative group">
               <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
-                <KeyRound className={`w-4 h-4 transition-colors ${validationStatus === 'error' ? 'text-red-500' : validationStatus === 'success' ? 'text-emerald-500' : 'text-slate-500'}`} />
+                <KeyRound className="w-4 h-4 text-slate-500 group-focus-within:text-blue-500 transition-colors" />
               </div>
               <input
                 type="password"
                 value={apiKeyInput}
-                onChange={(e) => {
-                  setApiKeyInput(e.target.value);
-                  if (validationStatus !== 'idle') setValidationStatus('idle');
-                }}
-                onKeyDown={(e) => e.key === 'Enter' && handleVerifyAndSave()}
+                onChange={(e) => setApiKeyInput(e.target.value)}
+                onKeyDown={(e) => e.key === 'Enter' && handleSaveAndProceed()}
                 placeholder="Paste Gemini API Key (sk-...)"
-                className={`w-full bg-slate-950 border py-4 pl-12 pr-4 rounded-2xl outline-none focus:ring-2 focus:ring-blue-500/50 text-sm transition-all font-mono placeholder:text-slate-700 ${
-                  validationStatus === 'error' ? 'border-red-500/50' : 
-                  validationStatus === 'success' ? 'border-emerald-500/50' : 
-                  'border-slate-800 hover:border-slate-700'
-                }`}
+                className="w-full bg-slate-950 border border-slate-800 hover:border-slate-700 focus:border-blue-500/50 py-4 pl-12 pr-4 rounded-2xl outline-none focus:ring-2 focus:ring-blue-500/50 text-sm transition-all font-mono placeholder:text-slate-700"
               />
             </div>
 
-            {validationStatus === 'error' && (
-              <div className="flex items-center gap-2 p-3 bg-red-500/10 border border-red-500/20 rounded-xl text-[10px] text-red-400 font-bold uppercase tracking-tight animate-in fade-in slide-in-from-top-1">
-                <AlertCircle className="w-3 h-3" />
-                {validationError || "Invalid Credentials"}
-              </div>
-            )}
-            
-            {validationStatus === 'success' && (
-              <div className="flex items-center gap-2 p-3 bg-emerald-500/10 border border-emerald-500/20 rounded-xl text-[10px] text-emerald-400 font-bold uppercase tracking-tight">
-                <Check className="w-3 h-3" />
-                Uplink Established
-              </div>
-            )}
-
             <button 
-              onClick={handleVerifyAndSave}
-              disabled={!apiKeyInput.trim() || validationStatus === 'checking'}
-              className={`w-full py-4 rounded-2xl font-black text-sm uppercase tracking-widest shadow-xl transition-all flex items-center justify-center gap-3 ${
-                validationStatus === 'checking' ? 'bg-slate-800 text-slate-500' :
-                validationStatus === 'success' ? 'bg-emerald-600 text-white' :
-                'bg-blue-600 hover:bg-blue-500 text-white shadow-blue-500/20'
-              } disabled:opacity-50 active:scale-[0.98]`}
+              onClick={handleSaveAndProceed}
+              disabled={!apiKeyInput.trim()}
+              className="w-full py-4 rounded-2xl font-black text-sm uppercase tracking-widest shadow-xl bg-blue-600 hover:bg-blue-500 text-white shadow-blue-500/20 transition-all flex items-center justify-center gap-3 disabled:opacity-50 active:scale-[0.98]"
             >
-              {validationStatus === 'checking' ? (
-                <><div className="w-4 h-4 border-2 border-slate-500 border-t-transparent rounded-full animate-spin"></div>Verifying...</>
-              ) : validationStatus === 'success' ? (
-                <><Check className="w-4 h-4" />Connection Ready</>
-              ) : (
-                <><Zap className="w-4 h-4 fill-white" />Initialize Engine</>
-              )}
+              <Zap className="w-4 h-4 fill-white" />
+              Initialize Engine
             </button>
           </div>
 

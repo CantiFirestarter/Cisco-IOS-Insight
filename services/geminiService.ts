@@ -101,23 +101,6 @@ const ANALYSIS_SCHEMA = {
 };
 
 /**
- * Validates a Gemini API Key.
- */
-export async function validateApiKey(key: string): Promise<{ success: boolean; message: string }> {
-  try {
-    const ai = new GoogleGenAI({ apiKey: key });
-    await ai.models.generateContent({
-      model: "gemini-3-flash-preview",
-      contents: "Connection test.",
-    });
-    return { success: true, message: "Valid" };
-  } catch (error: any) {
-    console.error("API Key Validation Error:", error);
-    return { success: false, message: error.message || "Invalid API key" };
-  }
-}
-
-/**
  * Analyzes Cisco IOS configurations using Gemini 3 Pro reasoning.
  */
 export async function analyzeCiscoConfigs(files: ConfigFile[]): Promise<AnalysisResult> {
