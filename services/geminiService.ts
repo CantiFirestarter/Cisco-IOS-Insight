@@ -143,11 +143,7 @@ export async function analyzeCiscoConfigs(files: ConfigFile[]): Promise<Analysis
     return JSON.parse(resultText) as AnalysisResult;
   } catch (error: any) {
     if (error.message?.includes("Requested entity was not found.")) {
-      // @ts-ignore
-      if (window.aistudio && window.aistudio.openSelectKey) {
-        // @ts-ignore
-        window.aistudio.openSelectKey();
-      }
+      window.dispatchEvent(new CustomEvent('cisco-insight-key-invalid'));
     }
     console.error("Gemini Cisco Audit Error:", error);
     throw new Error(error.message || "Failed to analyze Cisco configurations.");
@@ -184,11 +180,7 @@ export async function askConfigQuestion(files: ConfigFile[], history: ChatMessag
     return response.text || "I'm sorry, I couldn't process that question.";
   } catch (error: any) {
     if (error.message?.includes("Requested entity was not found.")) {
-      // @ts-ignore
-      if (window.aistudio && window.aistudio.openSelectKey) {
-        // @ts-ignore
-        window.aistudio.openSelectKey();
-      }
+      window.dispatchEvent(new CustomEvent('cisco-insight-key-invalid'));
     }
     console.error("Chat error:", error);
     throw new Error(error.message || "Failed to get an answer.");

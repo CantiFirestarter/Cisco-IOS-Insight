@@ -1,6 +1,6 @@
 
 import React, { useState, useEffect } from 'react';
-import { ShieldCheck, Lock, Zap, ExternalLink, Info } from 'lucide-react';
+import { ShieldCheck, Lock, Zap, ExternalLink, Info, CreditCard } from 'lucide-react';
 
 interface AuthGateProps {
   onSelectKey: () => void;
@@ -39,7 +39,7 @@ const AuthGate: React.FC<AuthGateProps> = ({ onSelectKey, onKeyValidated }) => {
             <h1 className="text-3xl font-black text-white tracking-tight">Cisco IOS Insight</h1>
             <p className="text-slate-400 text-sm leading-relaxed max-w-sm mx-auto">
               Advanced Cisco architectural auditing powered by Gemini 3 Pro.
-              This tool requires a valid API key with billing enabled.
+              To use this tool, you must select your own Google Cloud API key from a project with billing enabled.
             </p>
           </div>
         </div>
@@ -52,13 +52,18 @@ const AuthGate: React.FC<AuthGateProps> = ({ onSelectKey, onKeyValidated }) => {
               className="w-full py-4 rounded-2xl font-black text-sm uppercase tracking-widest shadow-xl transition-all flex items-center justify-center gap-3 bg-blue-600 hover:bg-blue-500 text-white shadow-blue-500/20 active:scale-[0.98]"
             >
               <Zap className="w-4 h-4 fill-white" />
-              Connect Google AI Studio
+              Use Your Own API Key
             </button>
             
-            <p className="text-[10px] text-slate-500 text-center uppercase tracking-widest font-black flex items-center justify-center gap-2">
-              <Info className="w-3 h-3" />
-              Mandatory Project Key Selection
-            </p>
+            <div className="flex items-start gap-3 p-4 bg-slate-800/50 rounded-2xl border border-slate-700/50">
+              <CreditCard className="w-5 h-5 text-blue-400 shrink-0 mt-0.5" />
+              <div className="space-y-1">
+                <p className="text-[10px] text-slate-300 font-black uppercase tracking-widest">Billing Required</p>
+                <p className="text-[10px] text-slate-500 leading-relaxed italic">
+                  The Gemini 3 Pro model requires a paid Google Cloud project. You will only be charged based on your personal usage.
+                </p>
+              </div>
+            </div>
           </div>
 
           {/* Action Links & Footer Info */}
@@ -70,7 +75,7 @@ const AuthGate: React.FC<AuthGateProps> = ({ onSelectKey, onKeyValidated }) => {
                 rel="noopener noreferrer"
                 className="inline-flex items-center gap-1.5 text-[10px] text-blue-400 hover:text-blue-300 font-black uppercase tracking-widest transition-colors"
               >
-                Learn about billing <ExternalLink className="w-3 h-3" />
+                View Billing Documentation <ExternalLink className="w-3 h-3" />
               </a>
             </div>
 

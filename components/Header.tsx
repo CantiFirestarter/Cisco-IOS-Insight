@@ -46,11 +46,12 @@ const Header: React.FC<HeaderProps> = ({ onReset, hasResult, theme, onToggleThem
           {canResetKey && (
             <button
               onClick={handleResetKey}
-              className="p-2 rounded-xl bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400 hover:text-blue-600 dark:hover:text-blue-400 transition-all hover:scale-110 active:scale-95 border border-slate-200 dark:border-slate-700"
-              title="Reset API Key"
-              aria-label="Reset API Key"
+              className="flex items-center gap-2 px-3 py-2 rounded-xl bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400 hover:text-blue-600 dark:hover:text-blue-400 transition-all border border-slate-200 dark:border-slate-700 group"
+              title="Change Personal API Key"
+              aria-label="Change API Key"
             >
-              <KeyRound className="w-3.5 h-3.5 sm:w-4 h-4" />
+              <KeyRound className="w-3.5 h-3.5 sm:w-4 h-4 group-hover:rotate-12 transition-transform" />
+              <span className="hidden md:block text-[10px] font-black uppercase tracking-widest">Switch Key</span>
             </button>
           )}
 
