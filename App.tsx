@@ -47,19 +47,6 @@ const App: React.FC = () => {
       }
     };
     checkKeyStatus();
-
-    // Listen for invalid key errors from the service
-    const handleKeyInvalid = () => {
-      setHasApiKey(false);
-      // @ts-ignore
-      if (window.aistudio && window.aistudio.openSelectKey) {
-        // @ts-ignore
-        window.aistudio.openSelectKey();
-      }
-    };
-
-    window.addEventListener('cisco-insight-key-invalid', handleKeyInvalid);
-    return () => window.removeEventListener('cisco-insight-key-invalid', handleKeyInvalid);
   }, []);
 
   useEffect(() => {
@@ -109,7 +96,6 @@ const App: React.FC = () => {
     if (window.aistudio && window.aistudio.openSelectKey) {
       // @ts-ignore
       await window.aistudio.openSelectKey();
-      // Assume the key selection was successful to mitigate race condition
       setHasApiKey(true);
     }
   };

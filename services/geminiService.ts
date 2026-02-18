@@ -1,4 +1,3 @@
-
 import { GoogleGenAI, Type, Chat } from "@google/genai";
 import { AnalysisResult, Severity, ConfigFile, ChatMessage } from "../types";
 
@@ -97,6 +96,23 @@ const ANALYSIS_SCHEMA = {
 };
 
 /**
+ * Validates a Gemini API Key.
+ */
+export async function validateApiKey(key: string): Promise<{ success: boolean; message: string }> {
+  try {
+    const ai = new GoogleGenAI({ apiKey: key });
+    await ai.models.generateContent({
+      model: "gemini-3-flash-preview",
+      contents: "Connection test.",
+    });
+    return { success: true, message: "Valid" };
+  } catch (error: any) {
+    console.error("API Key Validation Error:", error);
+    return { success: false, message: error.message || "Invalid API key" };
+  }
+}
+
+/**
  * Analyzes Cisco IOS configurations using Gemini 3 Pro reasoning.
  */
 export async function analyzeCiscoConfigs(files: ConfigFile[]): Promise<AnalysisResult> {
@@ -143,7 +159,11 @@ export async function analyzeCiscoConfigs(files: ConfigFile[]): Promise<Analysis
     return JSON.parse(resultText) as AnalysisResult;
   } catch (error: any) {
     if (error.message?.includes("Requested entity was not found.")) {
-      window.dispatchEvent(new CustomEvent('cisco-insight-key-invalid'));
+      // @ts-ignore
+      if (window.aistudio && window.aistudio.openSelectKey) {
+        // @ts-ignore
+        window.aistudio.openSelectKey();
+      }
     }
     console.error("Gemini Cisco Audit Error:", error);
     throw new Error(error.message || "Failed to analyze Cisco configurations.");
@@ -180,7 +200,11 @@ export async function askConfigQuestion(files: ConfigFile[], history: ChatMessag
     return response.text || "I'm sorry, I couldn't process that question.";
   } catch (error: any) {
     if (error.message?.includes("Requested entity was not found.")) {
-      window.dispatchEvent(new CustomEvent('cisco-insight-key-invalid'));
+      // @ts-ignore
+      if (window.aistudio && window.aistudio.openSelectKey) {
+        // @ts-ignore
+        window.aistudio.openSelectKey();
+      }
     }
     console.error("Chat error:", error);
     throw new Error(error.message || "Failed to get an answer.");
