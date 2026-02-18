@@ -1,7 +1,6 @@
-
 import React, { useState, useMemo } from 'react';
 import { AnalysisResult, Severity, AnalysisIssue, SuccessfulCheck, BestPractice, ConfigFile, VerificationStep, ChatMessage } from '../types';
-import { ShieldAlert, AlertTriangle, Info, CheckCircle2, Copy, ChevronDown, ChevronUp, Network, Server, ShieldCheck, Terminal, Layers, Filter, X, Check, Lightbulb, Eye, EyeOff, Cpu, HelpCircle, Globe, ClipboardList, Square, CheckSquare, MessageSquare, Download, ClipboardCheck, Activity, Zap, Search } from 'lucide-react';
+import { ShieldAlert, AlertTriangle, Info, CheckCircle2, Copy, ChevronDown, ChevronUp, Network, Server, ShieldCheck, Terminal, Layers, Filter, X, Check, Lightbulb, Eye, EyeOff, Cpu, HelpCircle, Globe, ClipboardList, Square, CheckSquare, MessageSquare, Download, ClipboardCheck, Activity, Zap, Search, ArrowUpDown, ChevronRight } from 'lucide-react';
 import ReactMarkdown from 'react-markdown';
 import ConfigChat from './ConfigChat';
 
@@ -20,6 +19,9 @@ interface RemediationItem {
   id: string;
 }
 
+type SortKey = 'severity' | 'category' | 'title';
+type SortDirection = 'asc' | 'desc';
+
 const AnalysisResults: React.FC<Props> = ({ 
   result, 
   files,
@@ -31,10 +33,19 @@ const AnalysisResults: React.FC<Props> = ({
   const [activeTab, setActiveTab] = useState<'network' | 'device' | 'compliant' | 'bestPractices' | 'remediation' | 'verify' | 'chat'>('network');
   const [showTooltip, setShowTooltip] = useState(false);
   const [checkedSteps, setCheckedSteps] = useState<Set<number>>(new Set());
+  const [expandedIssue, setExpandedIssue] = useState<number | null>(null);
   
+  // Sorting state
+  const [sortConfig, setSortConfig] = useState<{ key: SortKey; direction: SortDirection }>({ 
+    key: 'severity', 
+    direction: 'desc' 
+  });
+
   // Filter states
   const [severityFilter, setSeverityFilter] = useState<Severity | 'ALL'>('ALL');
   const [categoryFilter, setCategoryFilter] = useState<string>('ALL');
+
+  const severityOrder = { [Severity.CRITICAL]: 3, [Severity.WARNING]: 2, [Severity.INFO]: 1 };
 
   // Stats for the Verify tab cards
   const verifyStats = useMemo(() => {
@@ -52,6 +63,13 @@ const AnalysisResults: React.FC<Props> = ({
     
     return { connectivity, operational };
   }, [result.verificationSteps]);
+
+  const handleSort = (key: SortKey) => {
+    setSortConfig(prev => ({
+      key,
+      direction: prev.key === key && prev.direction === 'asc' ? 'desc' : 'asc'
+    }));
+  };
 
   // Group Best Practices by Category
   const groupedBestPractices = useMemo(() => {
@@ -84,18 +102,28 @@ const AnalysisResults: React.FC<Props> = ({
 
   const remediationCategories = Object.keys(groupedRemediation).sort();
 
-  // Filtering Logic for Issues and Conflicts
+  // Filtering & Sorting Logic for Issues and Conflicts
   const filteredItems = useMemo(() => {
-    const items = activeTab === 'network' ? result.networkWideIssues : result.issues;
-    if (activeTab === 'network' || activeTab === 'device') {
-      return items.filter(item => {
-        const severityMatch = severityFilter === 'ALL' || item.severity === severityFilter;
-        const categoryMatch = categoryFilter === 'ALL' || item.category === categoryFilter;
-        return severityMatch && categoryMatch;
-      });
-    }
-    return [];
-  }, [activeTab, result.issues, result.networkWideIssues, severityFilter, categoryFilter]);
+    const items = activeTab === 'network' ? [...result.networkWideIssues] : [...result.issues];
+    
+    let processed = items.filter(item => {
+      const severityMatch = severityFilter === 'ALL' || item.severity === severityFilter;
+      const categoryMatch = categoryFilter === 'ALL' || item.category === categoryFilter;
+      return severityMatch && categoryMatch;
+    });
+
+    processed.sort((a, b) => {
+      let comparison = 0;
+      if (sortConfig.key === 'severity') {
+        comparison = (severityOrder[a.severity] || 0) - (severityOrder[b.severity] || 0);
+      } else {
+        comparison = a[sortConfig.key].localeCompare(b[sortConfig.key]);
+      }
+      return sortConfig.direction === 'asc' ? comparison : -comparison;
+    });
+
+    return processed;
+  }, [activeTab, result.issues, result.networkWideIssues, severityFilter, categoryFilter, sortConfig]);
 
   // Extract unique categories for filtering
   const availableCategories = useMemo(() => {
@@ -109,6 +137,7 @@ const AnalysisResults: React.FC<Props> = ({
     setActiveTab(tab);
     setSeverityFilter('ALL');
     setCategoryFilter('ALL');
+    setExpandedIssue(null);
   };
 
   const toggleStep = (idx: number) => {
@@ -261,7 +290,7 @@ const AnalysisResults: React.FC<Props> = ({
           />
         )}
 
-        {/* Conflicts & Issues Tab Content */}
+        {/* Conflicts & Issues Tab Content (Refactored to Data Table) */}
         {(activeTab === 'network' || activeTab === 'device') && (
           <div className="space-y-4">
             <div className="flex flex-wrap items-center gap-3 p-4 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl shadow-sm transition-colors">
@@ -296,40 +325,145 @@ const AnalysisResults: React.FC<Props> = ({
               )}
             </div>
 
-            <div className="grid grid-cols-1 gap-4">
-              {filteredItems.length > 0 ? (
-                filteredItems.map((item, idx) => (
-                  <div key={idx} className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl p-5 sm:p-6 shadow-sm hover:shadow-md transition-all animate-in fade-in slide-in-from-bottom-2 duration-300">
-                    <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 mb-4">
-                      <div className="flex items-center gap-2">
-                        <span className={`px-2 py-0.5 rounded-full text-[9px] font-black uppercase tracking-widest ${
-                          item.severity === Severity.CRITICAL ? 'bg-red-100 text-red-600 dark:bg-red-500/10 dark:text-red-500' :
-                          item.severity === Severity.WARNING ? 'bg-amber-100 text-amber-600 dark:bg-amber-500/10 dark:text-amber-500' :
-                          'bg-blue-100 text-blue-600 dark:bg-blue-500/10 dark:text-blue-500'
-                        }`}>
-                          {item.severity}
-                        </span>
-                        <span className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">{item.category}</span>
-                      </div>
-                      <div className="flex flex-wrap gap-1.5">
-                        {item.affectedDevices?.map(d => (
-                          <span key={d} className="px-2 py-0.5 bg-slate-100 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded text-[9px] font-mono text-slate-700 dark:text-slate-300">
-                            {d}
-                          </span>
-                        ))}
-                      </div>
-                    </div>
-                    <h4 className="text-lg font-bold text-slate-900 dark:text-white mb-2 tracking-tight">{item.title}</h4>
-                    <div className="prose prose-sm dark:prose-invert max-w-none text-slate-600 dark:text-slate-400 mb-4 leading-relaxed">
-                      <ReactMarkdown>{item.description}</ReactMarkdown>
-                    </div>
-                  </div>
-                ))
-              ) : (
-                <div className="text-center py-12 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl">
-                  <p className="text-slate-500 dark:text-slate-400 text-sm italic">No items found matching the current filters.</p>
-                </div>
-              )}
+            <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl shadow-sm overflow-hidden transition-colors">
+              <div className="overflow-x-auto custom-scrollbar">
+                <table className="w-full text-left border-collapse min-w-[700px]">
+                  <thead>
+                    <tr className="border-b border-slate-100 dark:border-slate-800 bg-slate-50/50 dark:bg-slate-950/50">
+                      <th className="px-6 py-4 text-[10px] font-black uppercase tracking-widest text-slate-400 w-[120px]">
+                        <button onClick={() => handleSort('severity')} className="flex items-center gap-1.5 hover:text-slate-600 dark:hover:text-slate-200 transition-colors">
+                          Severity <ArrowUpDown className="w-3 h-3" />
+                        </button>
+                      </th>
+                      <th className="px-6 py-4 text-[10px] font-black uppercase tracking-widest text-slate-400 w-[150px]">
+                        <button onClick={() => handleSort('category')} className="flex items-center gap-1.5 hover:text-slate-600 dark:hover:text-slate-200 transition-colors">
+                          Category <ArrowUpDown className="w-3 h-3" />
+                        </button>
+                      </th>
+                      <th className="px-6 py-4 text-[10px] font-black uppercase tracking-widest text-slate-400">
+                        <button onClick={() => handleSort('title')} className="flex items-center gap-1.5 hover:text-slate-600 dark:hover:text-slate-200 transition-colors">
+                          Finding Title <ArrowUpDown className="w-3 h-3" />
+                        </button>
+                      </th>
+                      <th className="px-6 py-4 text-[10px] font-black uppercase tracking-widest text-slate-400">
+                        Affected Nodes
+                      </th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-slate-100 dark:divide-slate-800">
+                    {filteredItems.length > 0 ? (
+                      filteredItems.map((item, idx) => (
+                        <React.Fragment key={idx}>
+                          <tr 
+                            onClick={() => setExpandedIssue(expandedIssue === idx ? null : idx)}
+                            className={`group cursor-pointer hover:bg-slate-50/80 dark:hover:bg-slate-800/20 transition-colors ${expandedIssue === idx ? 'bg-blue-500/5 dark:bg-blue-500/10' : ''}`}
+                          >
+                            <td className="px-6 py-4">
+                              <span className={`px-2 py-0.5 rounded-full text-[9px] font-black uppercase tracking-widest flex items-center gap-1 w-fit ${
+                                item.severity === Severity.CRITICAL ? 'bg-red-100 text-red-600 dark:bg-red-500/10 dark:text-red-500' :
+                                item.severity === Severity.WARNING ? 'bg-amber-100 text-amber-600 dark:bg-amber-500/10 dark:text-amber-500' :
+                                'bg-blue-100 text-blue-600 dark:bg-blue-500/10 dark:text-blue-500'
+                              }`}>
+                                <div className={`w-1.5 h-1.5 rounded-full ${
+                                  item.severity === Severity.CRITICAL ? 'bg-red-500' :
+                                  item.severity === Severity.WARNING ? 'bg-amber-500' : 'bg-blue-500'
+                                }`}></div>
+                                {item.severity}
+                              </span>
+                            </td>
+                            <td className="px-6 py-4">
+                              <span className="text-[10px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-widest">
+                                {item.category}
+                              </span>
+                            </td>
+                            <td className="px-6 py-4">
+                              <div className="flex items-center gap-2">
+                                <ChevronRight className={`w-3.5 h-3.5 text-slate-300 transition-transform ${expandedIssue === idx ? 'rotate-90 text-blue-500' : ''}`} />
+                                <span className="text-sm font-bold text-slate-900 dark:text-slate-200 tracking-tight group-hover:text-blue-600 dark:group-hover:text-blue-400 transition-colors">
+                                  {item.title}
+                                </span>
+                              </div>
+                            </td>
+                            <td className="px-6 py-4">
+                              <div className="flex flex-wrap gap-1.5">
+                                {item.affectedDevices?.map(d => (
+                                  <span key={d} className="px-2 py-0.5 bg-slate-100 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded text-[9px] font-mono font-bold text-slate-600 dark:text-slate-400">
+                                    {d}
+                                  </span>
+                                ))}
+                              </div>
+                            </td>
+                          </tr>
+                          {expandedIssue === idx && (
+                            <tr className="bg-slate-50/50 dark:bg-slate-950/30">
+                              <td colSpan={4} className="px-6 py-8 border-l-4 border-blue-500 animate-in fade-in slide-in-from-top-1">
+                                <div className="max-w-4xl space-y-6">
+                                  <div>
+                                    <h5 className="text-[10px] font-black text-blue-600 dark:text-blue-400 uppercase tracking-widest mb-3 flex items-center gap-2">
+                                      <Info className="w-3.5 h-3.5" />
+                                      Detailed Analysis & Impact
+                                    </h5>
+                                    <div className="prose prose-sm dark:prose-invert max-w-none text-slate-600 dark:text-slate-300 leading-relaxed font-medium">
+                                      <ReactMarkdown>{item.description}</ReactMarkdown>
+                                    </div>
+                                  </div>
+
+                                  {item.remediation && (
+                                    <div className="space-y-3">
+                                      <div className="flex items-center justify-between">
+                                        <h5 className="text-[10px] font-black text-amber-600 dark:text-amber-500 uppercase tracking-widest flex items-center gap-2">
+                                          <Terminal className="w-3.5 h-3.5" />
+                                          Suggested CLI Remediation
+                                        </h5>
+                                        <button 
+                                          onClick={(e) => { e.stopPropagation(); navigator.clipboard.writeText(item.remediation); }}
+                                          className="flex items-center gap-1.5 text-[9px] font-black text-blue-600 hover:text-blue-500 uppercase tracking-widest transition-colors"
+                                        >
+                                          <Copy className="w-3 h-3" />
+                                          Copy Buffer
+                                        </button>
+                                      </div>
+                                      <pre className="p-4 bg-slate-900 rounded-xl font-mono text-xs text-blue-400 border border-slate-800 shadow-inner overflow-x-auto">
+                                        {item.remediation}
+                                      </pre>
+                                    </div>
+                                  )}
+
+                                  {item.iosVersions && item.iosVersions.length > 0 && (
+                                    <div className="flex items-center gap-3 pt-4 border-t border-slate-200 dark:border-slate-800">
+                                      <span className="text-[9px] font-black text-slate-400 uppercase tracking-widest">Applies to OS:</span>
+                                      <div className="flex gap-2">
+                                        {item.iosVersions.map(v => (
+                                          <span key={v} className="px-2 py-0.5 bg-blue-600/10 text-blue-600 rounded text-[9px] font-bold">{v}</span>
+                                        ))}
+                                      </div>
+                                    </div>
+                                  )}
+                                </div>
+                              </td>
+                            </tr>
+                          )}
+                        </React.Fragment>
+                      ))
+                    ) : (
+                      <tr>
+                        <td colSpan={4} className="text-center py-20">
+                          <div className="flex flex-col items-center justify-center space-y-3">
+                            <Search className="w-10 h-10 text-slate-200 dark:text-slate-800" />
+                            <p className="text-slate-400 text-sm italic font-medium">No results found matching active criteria.</p>
+                            <button 
+                              onClick={() => { setSeverityFilter('ALL'); setCategoryFilter('ALL'); }}
+                              className="text-[10px] font-black text-blue-600 uppercase tracking-widest hover:underline"
+                            >
+                              Clear all filters
+                            </button>
+                          </div>
+                        </td>
+                      </tr>
+                    )}
+                  </tbody>
+                </table>
+              </div>
             </div>
           </div>
         )}
