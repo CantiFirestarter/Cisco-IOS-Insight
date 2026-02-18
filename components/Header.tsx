@@ -1,6 +1,6 @@
 
 import React, { useState, useEffect } from 'react';
-import { ShieldCheck, Moon, Sun, ChevronLeft, Key } from 'lucide-react';
+import { ShieldCheck, Moon, Sun, ChevronLeft, KeyRound } from 'lucide-react';
 
 interface HeaderProps {
   onReset: () => void;
@@ -50,7 +50,7 @@ const Header: React.FC<HeaderProps> = ({ onReset, hasResult, theme, onToggleThem
               title="Reset API Key"
               aria-label="Reset API Key"
             >
-              <Key className="w-3.5 h-3.5 sm:w-4 h-4" />
+              <KeyRound className="w-3.5 h-3.5 sm:w-4 h-4" />
             </button>
           )}
 

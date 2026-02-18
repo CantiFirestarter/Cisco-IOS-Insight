@@ -1,7 +1,7 @@
 
 import React, { useState, useMemo } from 'react';
-import { AnalysisResult, Severity, AnalysisIssue, SuccessfulCheck, BestPractice, ConfigFile } from '../types';
-import { ShieldAlert, AlertTriangle, Info, CheckCircle2, Copy, ChevronDown, ChevronUp, Network, Server, ShieldCheck, Terminal, Layers, Filter, X, Check, Lightbulb, Eye, EyeOff, Cpu, HelpCircle, Globe, ClipboardList, Square, CheckSquare, MessageSquare } from 'lucide-react';
+import { AnalysisResult, Severity, AnalysisIssue, SuccessfulCheck, BestPractice, ConfigFile, VerificationStep } from '../types';
+import { ShieldAlert, AlertTriangle, Info, CheckCircle2, Copy, ChevronDown, ChevronUp, Network, Server, ShieldCheck, Terminal, Layers, Filter, X, Check, Lightbulb, Eye, EyeOff, Cpu, HelpCircle, Globe, ClipboardList, Square, CheckSquare, MessageSquare, Download, ClipboardCheck, Activity, Zap } from 'lucide-react';
 import ReactMarkdown from 'react-markdown';
 import ConfigChat from './ConfigChat';
 
@@ -17,12 +17,30 @@ interface RemediationItem {
 }
 
 const AnalysisResults: React.FC<Props> = ({ result, files }) => {
-  const [activeTab, setActiveTab] = useState<'network' | 'device' | 'compliant' | 'bestPractices' | 'remediation' | 'chat'>('network');
+  const [activeTab, setActiveTab] = useState<'network' | 'device' | 'compliant' | 'bestPractices' | 'remediation' | 'verify' | 'chat'>('network');
   const [showTooltip, setShowTooltip] = useState(false);
+  const [checkedSteps, setCheckedSteps] = useState<Set<number>>(new Set());
   
   // Filter states
   const [severityFilter, setSeverityFilter] = useState<Severity | 'ALL'>('ALL');
   const [categoryFilter, setCategoryFilter] = useState<string>('ALL');
+
+  // Stats for the Verify tab cards
+  const verifyStats = useMemo(() => {
+    let connectivity = 0;
+    let operational = 0;
+    
+    result.verificationSteps.forEach(step => {
+      const cmd = step.command.toLowerCase();
+      if (cmd.includes('ping') || cmd.includes('trace') || step.category.toLowerCase().includes('connectivity') || step.category.toLowerCase().includes('reachability')) {
+        connectivity++;
+      } else {
+        operational++;
+      }
+    });
+    
+    return { connectivity, operational };
+  }, [result.verificationSteps]);
 
   // Group Best Practices by Category
   const groupedBestPractices = useMemo(() => {
@@ -84,11 +102,34 @@ const AnalysisResults: React.FC<Props> = ({ result, files }) => {
     setCategoryFilter('ALL');
   };
 
+  const toggleStep = (idx: number) => {
+    const next = new Set(checkedSteps);
+    if (next.has(idx)) next.delete(idx);
+    else next.add(idx);
+    setCheckedSteps(next);
+  };
+
+  const handleDownloadChecklist = () => {
+    const content = result.verificationSteps.map((step, i) => {
+      return `[${checkedSteps.has(i) ? 'X' : ' '}] STEP ${i + 1}: ${step.title}\nDEVICE: ${step.affectedDevices.join(', ')}\nCOMMAND: ${step.command}\nEXPECTED: ${step.expectedResult}\n\n`;
+    }).join('---\n\n');
+    
+    const blob = new Blob([`CISCO NETWORK VERIFICATION CHECKLIST\nGenerated: ${new Date().toLocaleString()}\n\n${content}`], { type: 'text/plain' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `Cisco-Verification-Checklist.txt`;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+  };
+
   const isFilterActive = severityFilter !== 'ALL' || categoryFilter !== 'ALL';
 
   return (
     <div className="space-y-4 sm:space-y-6">
-      {/* Platform Summary Banner - Theme Responsive */}
+      {/* Platform Summary Banner */}
       {result.detectedPlatforms && result.detectedPlatforms.length > 0 && (
         <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl p-4 sm:p-5 flex flex-col sm:flex-row items-center justify-between gap-4 animate-in slide-in-from-top-4 duration-500 shadow-sm dark:shadow-xl dark:shadow-blue-500/5 transition-colors">
           <div className="flex items-center gap-4">
@@ -159,6 +200,16 @@ const AnalysisResults: React.FC<Props> = ({ result, files }) => {
           {activeTab === 'remediation' && <div className="absolute bottom-0 left-0 w-full h-1 bg-amber-600 dark:bg-amber-500 rounded-t-full"></div>}
         </button>
         <button
+          onClick={() => handleTabChange('verify')}
+          className={`px-3 py-3 sm:px-6 sm:py-4 font-bold text-[9px] sm:text-xs uppercase tracking-widest transition-all relative flex items-center gap-1.5 sm:gap-2 flex-shrink-0 ${
+            activeTab === 'verify' ? 'text-blue-600 dark:text-blue-500' : 'text-slate-500 hover:text-slate-900 dark:hover:text-slate-300'
+          }`}
+        >
+          <ClipboardCheck className="w-3 h-3" />
+          Verify ({result.verificationSteps.length})
+          {activeTab === 'verify' && <div className="absolute bottom-0 left-0 w-full h-1 bg-blue-600 dark:bg-blue-500 rounded-t-full"></div>}
+        </button>
+        <button
           onClick={() => handleTabChange('compliant')}
           className={`px-3 py-3 sm:px-6 sm:py-4 font-bold text-[9px] sm:text-xs uppercase tracking-widest transition-all relative flex items-center gap-1.5 sm:gap-2 flex-shrink-0 ${
             activeTab === 'compliant' ? 'text-emerald-600 dark:text-emerald-500' : 'text-slate-500 hover:text-slate-900 dark:hover:text-slate-300'
@@ -181,7 +232,7 @@ const AnalysisResults: React.FC<Props> = ({ result, files }) => {
         <button
           onClick={() => handleTabChange('chat')}
           className={`px-3 py-3 sm:px-6 sm:py-4 font-bold text-[9px] sm:text-xs uppercase tracking-widest transition-all relative flex items-center gap-1.5 sm:gap-2 flex-shrink-0 ${
-            activeTab === 'chat' ? 'text-blue-600 dark:text-blue-500' : 'text-slate-500 hover:text-slate-900 dark:hover:text-slate-300'
+            activeTab === 'chat' ? 'text-blue-600 dark:text-blue-500' : 'text-slate-500 hover:text-slate-900 dark:hover:text-white dark:hover:text-slate-300'
           }`}
         >
           <MessageSquare className="w-3 h-3" />
@@ -190,7 +241,7 @@ const AnalysisResults: React.FC<Props> = ({ result, files }) => {
         </button>
       </div>
 
-      {/* Filter Bar (Only for specific tabs) */}
+      {/* Filter Bar */}
       {(activeTab === 'network' || activeTab === 'device') && (
         <div className="bg-white dark:bg-slate-900/50 border border-slate-200 dark:border-slate-800 p-3 sm:p-4 rounded-xl sm:rounded-2xl flex flex-wrap items-center gap-3 sm:gap-6 shadow-sm dark:shadow-none transition-colors">
           <div className="flex items-center gap-2 text-slate-500">
@@ -257,6 +308,113 @@ const AnalysisResults: React.FC<Props> = ({ result, files }) => {
           ) : (
             <EmptyState message={isFilterActive ? "No issues match the selected filters." : "No device-level issues detected."} />
           )
+        )}
+
+        {activeTab === 'verify' && (
+          <div className="space-y-6 animate-in slide-in-from-bottom-4 duration-500">
+             <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 p-5 sm:p-8 rounded-2xl sm:rounded-3xl shadow-sm dark:shadow-none transition-colors">
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-8">
+                <div className="flex items-center gap-3">
+                  <div className="bg-blue-600/10 p-2.5 rounded-xl border border-blue-600/20">
+                    <ClipboardCheck className="w-5 h-5 text-blue-600 dark:text-blue-500" />
+                  </div>
+                  <div>
+                    <h3 className="text-base sm:text-lg font-black text-slate-900 dark:text-white uppercase tracking-tight">Logical Verification Checklist</h3>
+                    <p className="text-[10px] sm:text-xs text-slate-500 dark:text-slate-400 font-medium">Following CCIE-standard Bottom-Up verification sequence (Operational state then Connectivity).</p>
+                  </div>
+                </div>
+                <div className="flex items-center gap-2">
+                  <button 
+                    onClick={handleDownloadChecklist}
+                    className="flex items-center gap-2 px-4 py-2 bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 rounded-xl text-[10px] font-black uppercase tracking-widest hover:bg-slate-200 dark:hover:bg-slate-700 transition-colors border border-slate-200 dark:border-slate-700"
+                  >
+                    <Download className="w-3.5 h-3.5" />
+                    Download Checklist
+                  </button>
+                  <button 
+                    onClick={() => {
+                      const text = result.verificationSteps.map((s, i) => `STEP ${i+1}: ${s.command} (${s.title})`).join('\n');
+                      navigator.clipboard.writeText(text);
+                    }}
+                    className="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-xl text-[10px] font-black uppercase tracking-widest hover:bg-blue-500 transition-colors shadow-lg shadow-blue-500/20"
+                  >
+                    <Copy className="w-3.5 h-3.5" />
+                    Copy Commands
+                  </button>
+                </div>
+              </div>
+
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-8">
+                 <div className="bg-slate-50 dark:bg-slate-950 p-4 rounded-2xl border border-slate-200 dark:border-slate-800 flex items-center gap-3">
+                    <Zap className="w-5 h-5 text-amber-500" />
+                    <div>
+                      <div className="text-lg font-black text-slate-900 dark:text-white leading-none">{verifyStats.connectivity}</div>
+                      <div className="text-[9px] font-bold text-slate-400 uppercase tracking-widest">Reachability Tests</div>
+                    </div>
+                 </div>
+                 <div className="bg-slate-50 dark:bg-slate-950 p-4 rounded-2xl border border-slate-200 dark:border-slate-800 flex items-center gap-3">
+                    <Activity className="w-5 h-5 text-blue-500" />
+                    <div>
+                      <div className="text-lg font-black text-slate-900 dark:text-white leading-none">{verifyStats.operational}</div>
+                      <div className="text-[9px] font-bold text-slate-400 uppercase tracking-widest">Operational Checks</div>
+                    </div>
+                 </div>
+                 <div className="bg-emerald-600/5 dark:bg-emerald-500/5 p-4 rounded-2xl border border-emerald-600/20 dark:border-emerald-500/20 flex items-center gap-3">
+                    <ShieldCheck className="w-5 h-5 text-emerald-500" />
+                    <div>
+                      <div className="text-[9px] font-black text-emerald-600 dark:text-emerald-400 uppercase tracking-widest">Exhaustive Coverage</div>
+                      <div className="text-[8px] font-bold text-emerald-500/60 uppercase">Enabled Setting Verified</div>
+                    </div>
+                 </div>
+              </div>
+
+              {result.verificationSteps.length > 0 ? (
+                <div className="space-y-4">
+                  {result.verificationSteps.map((step, idx) => {
+                    // Show a separator if the category changed from the previous step
+                    const prevStep = idx > 0 ? result.verificationSteps[idx - 1] : null;
+                    const showCategoryHeader = !prevStep || prevStep.category !== step.category;
+                    
+                    return (
+                      <React.Fragment key={idx}>
+                        {showCategoryHeader && (
+                          <div className="flex items-center gap-3 px-2 py-4 mt-4 first:mt-0">
+                             <div className={`p-1 rounded-md ${step.command.toLowerCase().includes('ping') ? 'bg-amber-500/10 text-amber-600' : 'bg-blue-600/10 text-blue-600'}`}>
+                                {step.command.toLowerCase().includes('ping') ? <Globe className="w-3.5 h-3.5" /> : <Terminal className="w-3.5 h-3.5" />}
+                             </div>
+                             <h4 className={`text-[10px] font-black uppercase tracking-widest ${step.command.toLowerCase().includes('ping') ? 'text-amber-600' : 'text-slate-400'}`}>
+                                {step.category}
+                             </h4>
+                             <div className="h-px flex-1 bg-slate-100 dark:bg-slate-800"></div>
+                          </div>
+                        )}
+                        <VerificationStepCard 
+                          step={step} 
+                          index={idx} 
+                          isChecked={checkedSteps.has(idx)}
+                          onToggle={() => toggleStep(idx)}
+                        />
+                      </React.Fragment>
+                    );
+                  })}
+                  
+                  <div className="pt-8 border-t border-slate-100 dark:border-slate-800 flex items-center justify-between">
+                    <div className="text-[10px] sm:text-xs font-bold text-slate-400 dark:text-slate-500 uppercase tracking-widest">
+                      {checkedSteps.size} of {result.verificationSteps.length} Steps Completed
+                    </div>
+                    <div className="w-48 h-1.5 bg-slate-100 dark:bg-slate-800 rounded-full overflow-hidden">
+                      <div 
+                        className="h-full bg-emerald-500 transition-all duration-500" 
+                        style={{ width: `${(checkedSteps.size / result.verificationSteps.length) * 100}%` }}
+                      ></div>
+                    </div>
+                  </div>
+                </div>
+              ) : (
+                <EmptyState message="No specific verification steps generated for this session." />
+              )}
+            </div>
+          </div>
         )}
 
         {activeTab === 'remediation' && (
@@ -344,6 +502,114 @@ const EmptyState: React.FC<{ message: string }> = ({ message }) => (
     <p className="text-slate-500 font-medium text-xs sm:text-sm max-w-[200px] sm:max-w-xs">{message}</p>
   </div>
 );
+
+const VerificationStepCard: React.FC<{ 
+  step: VerificationStep; 
+  index: number; 
+  isChecked: boolean; 
+  onToggle: () => void;
+}> = ({ step, index, isChecked, onToggle }) => {
+  const [copied, setCopied] = useState(false);
+
+  const isReachabilityTest = useMemo(() => {
+    const cmd = step.command.toLowerCase();
+    return cmd.startsWith('ping') || cmd.startsWith('traceroute') || cmd.startsWith('trace');
+  }, [step.command]);
+
+  const handleCopy = (e: React.MouseEvent) => {
+    e.stopPropagation();
+    navigator.clipboard.writeText(step.command);
+    setCopied(true);
+    setTimeout(() => setCopied(false), 2000);
+  };
+
+  return (
+    <div 
+      onClick={onToggle}
+      className={`group flex items-start gap-4 p-4 sm:p-5 rounded-2xl border transition-all cursor-pointer ${
+        isChecked 
+          ? 'bg-emerald-50/50 dark:bg-emerald-500/5 border-emerald-500/30' 
+          : 'bg-white dark:bg-slate-950 border-slate-200 dark:border-slate-800 hover:border-blue-500/30 shadow-sm'
+      }`}
+    >
+      <div className="mt-1">
+        {isChecked ? (
+          <CheckSquare className="w-5 h-5 text-emerald-600 dark:text-emerald-400" />
+        ) : (
+          <Square className="w-5 h-5 text-slate-300 dark:text-slate-700 group-hover:text-blue-500" />
+        )}
+      </div>
+      
+      <div className="flex-1 space-y-3">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
+          <div className="flex items-center gap-2">
+            <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Check {index + 1}</span>
+            <span className={`text-[9px] font-bold px-2 py-0.5 rounded-full border flex items-center gap-1.5 ${
+              isChecked 
+                ? 'bg-emerald-600/10 text-emerald-600 border-emerald-600/20' 
+                : isReachabilityTest
+                  ? 'bg-amber-600/10 text-amber-600 border-amber-600/20'
+                  : 'bg-blue-600/10 text-blue-600 border-blue-600/20'
+            }`}>
+              {isReachabilityTest && <Zap className="w-2.5 h-2.5" />}
+              {step.category}
+            </span>
+          </div>
+          <div className="flex flex-wrap gap-1.5">
+            {step.affectedDevices.map(d => (
+              <span key={d} className="text-[9px] font-mono font-bold text-slate-500 dark:text-slate-400 bg-slate-100 dark:bg-slate-800 px-1.5 py-0.5 rounded">
+                {d}
+              </span>
+            ))}
+          </div>
+        </div>
+
+        <div className="space-y-1">
+          <h4 className={`text-sm sm:text-base font-bold tracking-tight transition-colors ${isChecked ? 'text-emerald-700 dark:text-emerald-400 line-through opacity-70' : 'text-slate-900 dark:text-white'}`}>
+            {step.title}
+          </h4>
+        </div>
+
+        {!isChecked && (
+          <div className="space-y-3 animate-in fade-in slide-in-from-top-1 duration-300">
+            <div className="flex items-center gap-2">
+              <div className={`flex-1 border rounded-xl p-3 flex items-center justify-between font-mono text-[11px] sm:text-xs transition-colors ${
+                isReachabilityTest 
+                  ? 'bg-amber-50 dark:bg-amber-950/20 border-amber-200 dark:border-amber-800 text-amber-700 dark:text-amber-400' 
+                  : 'bg-slate-50 dark:bg-slate-900 border-slate-200 dark:border-slate-800 text-blue-700 dark:text-blue-400'
+              }`}>
+                <div className="flex items-center gap-2">
+                  {isReachabilityTest && <Activity className="w-3.5 h-3.5" />}
+                  <span>{step.command}</span>
+                </div>
+                <button 
+                  onClick={handleCopy}
+                  className={`p-1.5 rounded-lg transition-all ${copied ? 'bg-emerald-600 text-white' : 'hover:bg-slate-200 dark:hover:bg-slate-800 text-slate-400'}`}
+                >
+                  {copied ? <Check className="w-3.5 h-3.5" /> : <Copy className="w-3.5 h-3.5" />}
+                </button>
+              </div>
+            </div>
+            
+            <div className={`flex items-start gap-2 p-3 rounded-xl border border-dashed transition-colors ${
+              isReachabilityTest 
+                ? 'bg-amber-50/50 dark:bg-amber-950/10 border-amber-200 dark:border-amber-900' 
+                : 'bg-slate-50 dark:bg-slate-900/50 border-slate-200 dark:border-slate-800'
+            }`}>
+              <Eye className="w-3.5 h-3.5 text-slate-400 mt-0.5" />
+              <div className="space-y-1">
+                <span className="text-[9px] font-black text-slate-400 uppercase tracking-widest block">Success Criteria</span>
+                <p className="text-xs text-slate-600 dark:text-slate-400 italic">
+                  {step.expectedResult}
+                </p>
+              </div>
+            </div>
+          </div>
+        )}
+      </div>
+    </div>
+  );
+};
 
 const RemediationGroup: React.FC<{ category: string; items: RemediationItem[] }> = ({ category, items }) => {
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set(items.map(i => i.id)));

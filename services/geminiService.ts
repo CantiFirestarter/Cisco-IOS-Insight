@@ -76,9 +76,24 @@ const ANALYSIS_SCHEMA = {
         },
         required: ["category", "title", "rationale", "recommendation"]
       }
+    },
+    verificationSteps: {
+      type: Type.ARRAY,
+      description: "Post-remediation verification checklist to ensure changes work as intended.",
+      items: {
+        type: Type.OBJECT,
+        properties: {
+          title: { type: Type.STRING },
+          command: { type: Type.STRING, description: "The show, debug, or ping/reachability command to run." },
+          expectedResult: { type: Type.STRING, description: "What the engineer should verify in the output (e.g., 'Status should be Up/Up' or 'Ping success rate 100%')." },
+          category: { type: Type.STRING },
+          affectedDevices: { type: Type.ARRAY, items: { type: Type.STRING } }
+        },
+        required: ["title", "command", "expectedResult", "category", "affectedDevices"]
+      }
     }
   },
-  required: ["summary", "deviceCount", "detectedDevices", "detectedPlatforms", "issues", "networkWideIssues", "successfulChecks", "bestPractices", "securityScore"]
+  required: ["summary", "deviceCount", "detectedDevices", "detectedPlatforms", "issues", "networkWideIssues", "successfulChecks", "bestPractices", "verificationSteps", "securityScore"]
 };
 
 /**
@@ -86,13 +101,12 @@ const ANALYSIS_SCHEMA = {
  */
 export async function analyzeCiscoConfigs(files: ConfigFile[]): Promise<AnalysisResult> {
   try {
-    // Create instance right before call to ensure latest API key is used
     const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
     const combinedConfigs = files.map(f => `DEVICE_NAME: ${f.name}\nCONFIG_START\n${f.content}\nCONFIG_END`).join('\n\n');
 
     const prompt = `Perform a comprehensive Cisco Network Audit. 
     
-    COMPLIANCE GOAL: Consistency is the primary indicator of a healthy network.
+    COMPLIANCE GOAL: Consistency, absolute reachability, and operational validation.
     
     INPUT CONFIGURATIONS:
     ${combinedConfigs}`;
@@ -107,7 +121,16 @@ export async function analyzeCiscoConfigs(files: ConfigFile[]): Promise<Analysis
         - RULE 3: NEIGHBORHOOD AWARENESS.
         - RULE 4: Standard Cisco CLI only.
         - RULE 5: Detailed OS Markers (IOS XR, XE, Classic).
-        - RULE 6: JSON output only following the provided schema.`,
+        - RULE 6: ZERO-TRUST VERIFICATION PROTOCOL:
+          - (A) MANDATORY OPERATIONAL CHECKS: For every service or protocol identified as enabled in the configs (e.g., BGP, OSPF, EIGRP, SSH, AAA, STP, VTP, HSRP, Interfaces), you MUST generate a 'show' command to verify its operational state. This is required even if no issues were found with that service.
+          - (B) REMEDIATION CHECKS: Every 'remediation' CLI command provided MUST have a corresponding verification step.
+          - (C) FULL IP MESH: Extract EVERY unique IP address found in ALL config files (SVIs, Physical interfaces, Loopbacks, Neighbors). Generate an individual 'ping' test for EACH unique IP.
+          - (D) SEQUENTIAL ORDERING:
+            1. GLOBAL SERVICES (AAA status, SSH status, NTP sync).
+            2. LAYER 2 VALIDATION (VLAN database, Spanning-tree root, Port-channel states).
+            3. LAYER 3 OPERATIONAL (Interface IP status, Routing Protocol neighbors/adjacencies).
+            4. END-TO-END REACHABILITY (Individual pings to all identified IPs) MUST be the final phase.
+        - RULE 7: JSON output only following the provided schema.`,
         responseMimeType: "application/json",
         responseSchema: ANALYSIS_SCHEMA,
         thinkingConfig: { thinkingBudget: 32768 }
@@ -119,7 +142,6 @@ export async function analyzeCiscoConfigs(files: ConfigFile[]): Promise<Analysis
     
     return JSON.parse(resultText) as AnalysisResult;
   } catch (error: any) {
-    // Handle key selection requirement if billing/entity is missing
     if (error.message?.includes("Requested entity was not found.")) {
       // @ts-ignore
       if (window.aistudio && window.aistudio.openSelectKey) {
@@ -137,7 +159,6 @@ export async function analyzeCiscoConfigs(files: ConfigFile[]): Promise<Analysis
  */
 export async function askConfigQuestion(files: ConfigFile[], history: ChatMessage[], question: string): Promise<string> {
   try {
-    // Create instance right before call
     const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
     const combinedConfigs = files.map(f => `DEVICE: ${f.name}\n${f.content}`).join('\n\n');
     

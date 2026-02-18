@@ -32,6 +32,14 @@ export interface BestPractice {
   recommendation: string;
 }
 
+export interface VerificationStep {
+  title: string;
+  command: string;
+  expectedResult: string;
+  category: string;
+  affectedDevices: string[];
+}
+
 export interface AnalysisResult {
   summary: string;
   deviceCount: number;
@@ -41,6 +49,7 @@ export interface AnalysisResult {
   networkWideIssues: AnalysisIssue[];
   successfulChecks: SuccessfulCheck[];
   bestPractices: BestPractice[];
+  verificationSteps: VerificationStep[];
   securityScore: number;
 }
 
