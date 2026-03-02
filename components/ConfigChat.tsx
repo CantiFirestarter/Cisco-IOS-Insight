@@ -60,10 +60,14 @@ const ConfigChat: React.FC<Props> = ({
     }
   };
 
-  const handleCopy = (text: string, index: number) => {
-    navigator.clipboard.writeText(text);
-    setCopiedIndex(index);
-    setTimeout(() => setCopiedIndex(null), 2000);
+  const handleCopy = (index: number) => {
+    const messageElement = document.getElementById(`chat-message-${index}`);
+    if (messageElement) {
+      const text = messageElement.innerText;
+      navigator.clipboard.writeText(text);
+      setCopiedIndex(index);
+      setTimeout(() => setCopiedIndex(null), 2000);
+    }
   };
 
   return (
@@ -131,14 +135,14 @@ const ConfigChat: React.FC<Props> = ({
             }`}>
               {m.role === 'model' && (
                 <button
-                  onClick={() => handleCopy(m.text, i)}
+                  onClick={() => handleCopy(i)}
                   className="absolute top-2 right-2 p-1.5 rounded-lg bg-slate-100 dark:bg-slate-800 text-slate-400 hover:text-blue-600 dark:hover:text-blue-400 opacity-0 group-hover:opacity-100 transition-all"
                   title="Copy response"
                 >
                   {copiedIndex === i ? <Check className="w-3.5 h-3.5 text-emerald-500" /> : <Copy className="w-3.5 h-3.5" />}
                 </button>
               )}
-              <div className="prose dark:prose-invert prose-sm max-w-none prose-p:leading-relaxed prose-pre:bg-slate-900 prose-pre:text-blue-400 prose-code:text-blue-500">
+              <div id={`chat-message-${i}`} className="prose dark:prose-invert prose-sm max-w-none prose-p:leading-relaxed prose-pre:bg-slate-900 prose-pre:text-blue-400 prose-code:text-blue-500">
                 <ReactMarkdown>{m.text}</ReactMarkdown>
               </div>
             </div>
