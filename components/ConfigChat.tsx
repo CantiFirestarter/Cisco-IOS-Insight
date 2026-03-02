@@ -1,6 +1,6 @@
 
 import React, { useState, useRef, useEffect } from 'react';
-import { MessageSquare, Send, Bot, User, Sparkles, Terminal, ShieldQuestion, Search, HelpCircle, X } from 'lucide-react';
+import { Send, Bot, User, Terminal, ShieldQuestion, Search, Copy, Check } from 'lucide-react';
 import { ConfigFile, ChatMessage } from '../types';
 import { askConfigQuestion } from '../services/geminiService';
 import ReactMarkdown from 'react-markdown';
@@ -30,6 +30,7 @@ const ConfigChat: React.FC<Props> = ({
   onUpdateInput 
 }) => {
   const [isLoading, setIsLoading] = useState(false);
+  const [copiedIndex, setCopiedIndex] = useState<number | null>(null);
   const scrollRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -57,6 +58,12 @@ const ConfigChat: React.FC<Props> = ({
     } finally {
       setIsLoading(false);
     }
+  };
+
+  const handleCopy = (text: string, index: number) => {
+    navigator.clipboard.writeText(text);
+    setCopiedIndex(index);
+    setTimeout(() => setCopiedIndex(null), 2000);
   };
 
   return (
@@ -117,11 +124,20 @@ const ConfigChat: React.FC<Props> = ({
             <div className={`p-2 rounded-xl shrink-0 ${m.role === 'user' ? 'bg-slate-100 dark:bg-slate-800 text-slate-600' : 'bg-blue-600 text-white shadow-lg shadow-blue-500/20'}`}>
               {m.role === 'user' ? <User className="w-4 h-4" /> : <Bot className="w-4 h-4" />}
             </div>
-            <div className={`max-w-[85%] rounded-2xl p-4 sm:p-5 text-sm leading-relaxed ${
+            <div className={`max-w-[85%] rounded-2xl p-4 sm:p-5 text-sm leading-relaxed relative group ${
               m.role === 'user' 
                 ? 'bg-blue-600 text-white rounded-tr-none shadow-lg shadow-blue-500/10' 
                 : 'bg-white dark:bg-slate-950 border border-slate-200 dark:border-slate-800 text-slate-800 dark:text-slate-200 rounded-tl-none shadow-sm transition-colors'
             }`}>
+              {m.role === 'model' && (
+                <button
+                  onClick={() => handleCopy(m.text, i)}
+                  className="absolute top-2 right-2 p-1.5 rounded-lg bg-slate-100 dark:bg-slate-800 text-slate-400 hover:text-blue-600 dark:hover:text-blue-400 opacity-0 group-hover:opacity-100 transition-all"
+                  title="Copy response"
+                >
+                  {copiedIndex === i ? <Check className="w-3.5 h-3.5 text-emerald-500" /> : <Copy className="w-3.5 h-3.5" />}
+                </button>
+              )}
               <div className="prose dark:prose-invert prose-sm max-w-none prose-p:leading-relaxed prose-pre:bg-slate-900 prose-pre:text-blue-400 prose-code:text-blue-500">
                 <ReactMarkdown>{m.text}</ReactMarkdown>
               </div>

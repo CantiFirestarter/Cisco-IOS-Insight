@@ -1,6 +1,6 @@
 
 import React, { useState, useRef } from 'react';
-import { Upload, X, FileText, Send, Plus, Network, Layers, ClipboardPaste, Info } from 'lucide-react';
+import { Upload, X, FileText, Plus, Network, Layers, ClipboardPaste, Info } from 'lucide-react';
 import { ConfigFile } from '../types';
 
 interface Props {

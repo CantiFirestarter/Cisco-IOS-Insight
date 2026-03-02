@@ -1,6 +1,6 @@
 import React, { useState, useMemo } from 'react';
-import { AnalysisResult, Severity, AnalysisIssue, SuccessfulCheck, BestPractice, ConfigFile, VerificationStep, ChatMessage } from '../types';
-import { ShieldAlert, AlertTriangle, Info, CheckCircle2, Copy, ChevronDown, ChevronUp, Network, Server, ShieldCheck, Terminal, Layers, Filter, X, Check, Lightbulb, Eye, EyeOff, Cpu, HelpCircle, Globe, ClipboardList, Square, CheckSquare, MessageSquare, Download, ClipboardCheck, Activity, Zap, Search, ArrowUpDown, ChevronRight } from 'lucide-react';
+import { AnalysisResult, Severity, BestPractice, ConfigFile, ChatMessage } from '../types';
+import { Info, CheckCircle2, Copy, Network, Server, ShieldCheck, Terminal, Filter, X, Lightbulb, Eye, Cpu, HelpCircle, Square, CheckSquare, MessageSquare, Download, ClipboardCheck, Activity, Zap, Search, ArrowUpDown, ChevronRight } from 'lucide-react';
 import ReactMarkdown from 'react-markdown';
 import ConfigChat from './ConfigChat';
 

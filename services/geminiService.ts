@@ -1,10 +1,25 @@
-import { GoogleGenAI, Type, Chat } from "@google/genai";
+import { GoogleGenAI, Type } from "@google/genai";
 import { AnalysisResult, Severity, ConfigFile, ChatMessage } from "../types";
 
 /**
  * Helper to get the active API key, prioritizing manual user entry over environment variables.
  */
-const getActiveKey = () => localStorage.getItem('cisco_insight_api_key') || process.env.API_KEY || '';
+const getActiveKey = () => {
+  const localKey = localStorage.getItem('cisco_insight_api_key');
+  if (localKey) return localKey;
+  
+  // Safely check for process.env.API_KEY
+  try {
+    // @ts-ignore
+    if (typeof process !== 'undefined' && process.env && process.env.API_KEY) {
+      // @ts-ignore
+      return process.env.API_KEY;
+    }
+  } catch (e) {
+    // ignore
+  }
+  return '';
+};
 
 /**
  * Audit result schema for advanced Cisco network analysis.
@@ -125,7 +140,12 @@ export async function analyzeCiscoConfigs(files: ConfigFile[]): Promise<Analysis
         - RULE 3: NEIGHBORHOOD AWARENESS.
         - RULE 4: Standard Cisco CLI only.
         - RULE 5: Detailed OS Markers (IOS XR, XE, Classic).
-        - RULE 6: ZERO-TRUST VERIFICATION PROTOCOL:
+        - RULE 6: EXHAUSTIVE REPORTING (CRITICAL):
+          - You MUST identify and report EVERY single instance of a misconfiguration.
+          - Do NOT stop after finding the first example.
+          - Do NOT group distinct failures into a generic "multiple issues found" message unless the remediation covers ALL of them explicitly.
+          - If OSPF, BGP, or Interface settings are mismatched on multiple devices or interfaces, list EACH one or provide a remediation block that fixes ALL of them.
+        - RULE 7: ZERO-TRUST VERIFICATION PROTOCOL:
           - (A) MANDATORY OPERATIONAL CHECKS: For every service or protocol identified as enabled in the configs (e.g., BGP, OSPF, EIGRP, SSH, AAA, STP, VTP, HSRP, Interfaces), you MUST generate a 'show' command to verify its operational state. This is required even if no issues were found with that service.
           - (B) REMEDIATION CHECKS: Every 'remediation' CLI command provided MUST have a corresponding verification step.
           - (C) FULL IP MESH: Extract EVERY unique IP address found in ALL config files (SVIs, Physical interfaces, Loopbacks, Neighbors). Generate an individual 'ping' test for EACH unique IP.
@@ -134,7 +154,7 @@ export async function analyzeCiscoConfigs(files: ConfigFile[]): Promise<Analysis
             2. LAYER 2 VALIDATION (VLAN database, Spanning-tree root, Port-channel states).
             3. LAYER 3 OPERATIONAL (Interface IP status, Routing Protocol neighbors/adjacencies).
             4. END-TO-END REACHABILITY (Individual pings to all identified IPs) MUST be the final phase.
-        - RULE 7: JSON output only following the provided schema.`,
+        - RULE 8: JSON output only following the provided schema.`,
         responseMimeType: "application/json",
         responseSchema: ANALYSIS_SCHEMA,
         thinkingConfig: { thinkingBudget: 32768 }

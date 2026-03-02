@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { ShieldCheck, Lock, Zap, ExternalLink, KeyRound, Check } from 'lucide-react';
+import { ShieldCheck, Lock, Zap, ExternalLink, KeyRound } from 'lucide-react';
 
 interface AuthGateProps {
   onSelectKey: () => void;

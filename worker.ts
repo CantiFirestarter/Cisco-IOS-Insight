@@ -12,12 +12,6 @@ interface Fetcher {
   fetch: (request: Request | string, init?: RequestInit) => Promise<Response>;
 }
 
-// Define ExecutionContext interface locally to resolve "Cannot find name 'ExecutionContext'"
-interface ExecutionContext {
-  waitUntil(promise: Promise<any>): void;
-  passThroughOnException(): void;
-}
-
 export interface Env {
   /**
    * The ASSETS binding provides access to the static files 
@@ -27,7 +21,7 @@ export interface Env {
 }
 
 export default {
-  async fetch(request: Request, env: Env, ctx: ExecutionContext): Promise<Response> {
+  async fetch(request: Request, env: Env): Promise<Response> {
     const url = new URL(request.url);
     
     // First, try to serve the static asset from the binding (e.g., /index.tsx, /docs/README.html)

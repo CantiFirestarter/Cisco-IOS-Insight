@@ -35,24 +35,48 @@ const App: React.FC = () => {
   useEffect(() => {
     // Check key status on mount
     const checkKeyStatus = async () => {
-      // 1. Check AI Studio specialized environment
-      // @ts-ignore
-      if (window.aistudio && typeof window.aistudio.hasSelectedApiKey === 'function') {
+      // Safety timeout to prevent permanent blank screen
+      const timeoutId = setTimeout(() => {
+        setHasApiKey(prev => (prev === null ? false : prev));
+      }, 5000);
+
+      try {
+        // 1. Check AI Studio specialized environment
         // @ts-ignore
-        const has = await window.aistudio.hasSelectedApiKey();
-        setHasApiKey(has);
-      } else {
-        // 2. Check Local Storage for manually entered key
-        const localKey = localStorage.getItem('cisco_insight_api_key');
-        if (localKey) {
-          setHasApiKey(true);
-        } else if (process.env.API_KEY) {
-          // 3. Check for injected environment variable (Standard Deployment)
-          setHasApiKey(true);
+        if (window.aistudio && typeof window.aistudio.hasSelectedApiKey === 'function') {
+          // @ts-ignore
+          const has = await window.aistudio.hasSelectedApiKey();
+          setHasApiKey(has);
         } else {
-          // 4. No key found, force AuthGate
-          setHasApiKey(false);
+          // 2. Check Local Storage for manually entered key
+          const localKey = localStorage.getItem('cisco_insight_api_key');
+          if (localKey) {
+            setHasApiKey(true);
+          } else {
+            // 3. Check for injected environment variable (Standard Deployment)
+            let envKey = false;
+            try {
+              // @ts-ignore
+              if (typeof process !== 'undefined' && process.env && process.env.API_KEY) {
+                envKey = true;
+              }
+            } catch (e) {
+              // ignore
+            }
+
+            if (envKey) {
+              setHasApiKey(true);
+            } else {
+              // 4. No key found, force AuthGate
+              setHasApiKey(false);
+            }
+          }
         }
+      } catch (err) {
+        console.error("Key check failed:", err);
+        setHasApiKey(false);
+      } finally {
+        clearTimeout(timeoutId);
       }
     };
     checkKeyStatus();
@@ -110,7 +134,22 @@ const App: React.FC = () => {
   };
 
   // Wait for initial key check
-  if (hasApiKey === null) return null;
+  if (hasApiKey === null) {
+    return (
+      <div className="min-h-screen flex flex-col items-center justify-center bg-slate-50 dark:bg-slate-950 transition-colors duration-300">
+        <div className="flex flex-col items-center gap-6 animate-in fade-in zoom-in-95 duration-700">
+          <div className="relative">
+            <div className="absolute -inset-4 bg-blue-500/20 blur-2xl rounded-full animate-pulse"></div>
+            <div className="w-16 h-16 border-4 border-blue-600/20 border-t-blue-600 rounded-full animate-spin relative z-10"></div>
+          </div>
+          <div className="text-center space-y-2">
+            <h2 className="text-sm font-black text-slate-900 dark:text-white uppercase tracking-[0.2em]">Cisco IOS Insight</h2>
+            <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest animate-pulse">Initializing Security Engine...</p>
+          </div>
+        </div>
+      </div>
+    );
+  }
 
   // Show Auth Gate if no key selected/present
   if (hasApiKey === false) {
